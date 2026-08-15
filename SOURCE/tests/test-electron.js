@@ -40,7 +40,7 @@ const preload = fs.readFileSync(path.join(ROOT, 'desktop/preload.js'), 'utf8');
 if (preload.includes('contextBridge.exposeInMainWorld')) ok('preload → contextBridge API je registrovan');
 else bad('preload API', 'contextBridge API nije pronađen');
 
-const electronCheck = spawnSync(path.join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron'), ['--version'], { encoding: 'utf8' });
+const electronExecutable = process.platform === 'win32'\n  ? path.join(ROOT, 'node_modules', 'electron', 'dist', 'electron.exe')\n  : path.join(ROOT, 'node_modules', '.bin', 'electron');\nconst electronCheck = spawnSync(electronExecutable, ['--version'], { encoding: 'utf8', shell: process.platform === 'win32' });
 if (electronCheck.status === 0) ok(`Electron runtime radi (${(electronCheck.stdout || '').trim()})`);
 else bad('Electron runtime', (electronCheck.stderr || electronCheck.stdout || 'nepoznata greška').trim().slice(0, 240));
 
