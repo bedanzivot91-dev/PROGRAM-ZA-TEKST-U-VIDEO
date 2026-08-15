@@ -33,6 +33,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Windows JavaScript syntax check
+        shell: pwsh
+        run: |
+          node --check "PROGRAM - NE BRISATI/public/app.js"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Node syntax check failed for app.js"
+            exit $LASTEXITCODE
+          }
+
       - name: Static tests
         run: npm run test:static
 
