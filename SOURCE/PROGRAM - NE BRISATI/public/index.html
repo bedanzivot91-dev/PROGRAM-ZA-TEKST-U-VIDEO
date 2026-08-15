@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+
+<html lang="sr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="#050506" name="theme-color"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' http://127.0.0.1:* http://localhost:*; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'none'; frame-ancestors 'self'"/>
+<script>try{const p=localStorage.getItem('mss-theme-preference-v153')||'dark';const d=p==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;const s=localStorage.getItem('mss-skin-preference-v153')||'np-editorial';document.documentElement.dataset.themePreference=p;document.documentElement.dataset.theme=d;document.documentElement.dataset.skin=s;document.documentElement.style.colorScheme=d}catch(e){document.documentElement.dataset.theme='dark';document.documentElement.dataset.skin='np-editorial'}</script>
+<title>Muzički Spot Studio FREE</title>
+<link href="styles.css?v=15.4" rel="stylesheet"/>
+<link href="modern-theme.css?v=15.4" rel="stylesheet"/>
+<link href="skins.css?v=15.4" rel="stylesheet"/>
+<link href="editorial-theme.css?v=15.4" rel="stylesheet"/>
+<script src="boot.js?v=15.4"></script>
+</head>
+<body>
+<header class="topbar">
+<div class="brand">
+<div class="logo" aria-label="Nedostaješ PUNOO">NP<span>•</span></div>
+<div>
+<h1>MUZIČKI SPOT STUDIO <span>FREE 15.4 — EDITORIAL EDITION</span></h1>
+<p>Od pesme do filmskog spota • bez ponavljanja • bez skrivanja grešaka</p>
+</div>
+</div>
+<div class="top-actions">
+<div aria-label="Izgled programa" class="theme-switcher" role="group" title="Promeni svetli ili tamni izgled">
+<button aria-pressed="false" data-theme-choice="system" title="Prati izgled Windowsa" type="button">◐ <span class="theme-text">Sistem</span></button>
+<button aria-pressed="false" data-theme-choice="light" title="Svetli izgled" type="button">☀ <span class="theme-text">Svetli</span></button>
+<button aria-pressed="false" data-theme-choice="dark" title="Tamni izgled" type="button">☾ <span class="theme-text">Tamni</span></button>
+</div>
+<div class="skin-control" title="Izaberi moderan urbani skin">
+<label for="skinSelector"><span>SKIN</span>
+<select id="skinSelector" aria-label="Izaberi skin programa">
+<option value="np-editorial">Nedostaješ PUNOO Editorial</option>
+<option value="metro-neon">Metro Neon</option>
+<option value="cyber-alley">Cyber Alley</option>
+<option value="concrete-violet">Concrete Violet</option>
+<option value="midnight-chrome">Midnight Chrome</option>
+<option value="graffiti-pulse">Graffiti Pulse</option>
+<option value="tokyo-night">Tokyo Night</option>
+<option value="berlin-steel">Berlin Steel</option>
+<option value="brooklyn-amber">Brooklyn Amber</option>
+<option value="seoul-mint">Seoul Mint</option>
+<option value="miami-vice">Miami Vice</option>
+<option value="london-fog">London Fog</option>
+<option value="dubai-gold">Dubai Gold</option>
+<option value="oslo-ice">Oslo Ice</option>
+<option value="urban-rose">Urban Rose</option>
+<option value="asphalt-lime">Asphalt Lime</option>
+<option value="electric-blue">Electric Blue</option>
+<option value="crimson-district">Crimson District</option>
+<option value="purple-haze">Purple Haze</option>
+<option value="industrial-orange">Industrial Orange</option>
+<option value="emerald-city">Emerald City</option>
+<option value="graphite-mono">Graphite Mono</option>
+<option value="night-club">Night Club</option>
+<option value="street-art">Street Art</option>
+<option value="silver-skyline">Silver Skyline</option>
+</select></label>
+<button id="skinRandomBtn" class="skin-random" type="button" title="Nasumično izaberi drugi skin">✦</button><button id="skinGalleryBtn" class="skin-gallery-btn" type="button">Pregled skinova</button>
+</div>
+<button class="ghost" id="newProjectBtn">Novi projekat</button>
+<button class="ghost" id="importProjectBtn">Uvezi projekat</button>
+<button class="secondary" id="saveBtn">Sačuvaj</button>
+<button class="primary" id="runPipelineBtn">Pokreni besplatnu izradu</button>
+<button class="ghost shutdown-app" id="shutdownAppBtn" type="button">Zatvori program</button>
+</div>
+</header>
+<input accept="application/json,.json,application/zip,.zip" hidden="" id="projectImportFile" type="file"/>
+<main>
+<nav aria-label="Koraci izrade" class="tabs" id="tabs">
+<button class="active" data-tab="project">1 Projekat</button>
+<button data-tab="audio">2 Analiza zvuka</button>
+<button data-tab="concept">3 Koncept i stil</button>
+<button data-tab="storyboard">4 Storyboard</button>
+<button data-tab="characters">5 Likovi</button>
+<button data-tab="youtube">6 YouTube kanali</button>
+<button data-tab="captions">7 Tekst i titlovi</button>
+<button data-tab="media">8 Slike i video</button>
+<button data-tab="tools">9 Alati i provera</button>
+</nav>
+<section class="hero">
+<div>
+<span class="eyebrow">NEDOSTAJEŠ PUNOO / STUDIO 15.4</span>
+<h2>Od pesme do filmskog spota.<br/><em>Bez generičnih scena.</em></h2>
+<p>Unesi pesmu i priču. Studio proverava podatke, analizira zvuk, gradi raznovrstan koncept, zaključava identitet likova i priprema scene, slike, video-promptove, titlove i YouTube paket.</p>
+</div>
+<div class="hero-actions">
+<button class="secondary" id="copyChatGptRequestTop">Opcioni zahtev za ChatGPT</button>
+<button class="ghost" id="exportLightBtn">Preuzmi laki JSON</button>
+<button class="ghost" id="exportFullBtn">Preuzmi ceo projekat</button>
+</div>
+</section>
+<section class="status-grid" id="statusGrid">
+<article><strong id="statusAudio">—</strong><span>audio</span></article>
+<article><strong id="statusBpm">—</strong><span>BPM procena</span></article>
+<article><strong id="statusScenes">—</strong><span>scena</span></article>
+<article><strong id="statusImages">0%</strong><span>slike spremne</span></article>
+<article><strong id="statusCaptions">0</strong><span>titlova</span></article>
+<article><strong id="statusQuality">0%</strong><span>spremnost projekta</span></article>
+</section>
+<div class="notice info" id="globalNotice">Dodaj pesmu i kompletan tekst. Zatim klikni „Pokreni besplatnu izradu“.</div><div class="notice startup-rule" id="startupRuleNotice">NOVO 15.4: program počinje prazno. Stara nesacuvana pesma se ne vraća. Samo projekat koji klikom na „Sačuvaj“ izričito sačuvaš može da se učita pri sledećem pokretanju.</div>
+<section class="workspace active" data-panel="project">
+<div class="section-heading">
+<div><span class="step-label">KORAK 1</span><h2>Projekat</h2></div>
+<span class="badge" id="saveState">Nije sačuvano</span>
+</div>
+<div class="two-col">
+<div class="card">
+<h3>Osnovni podaci</h3>
+<p class="card-intro">Obavezni podaci su označeni crvenom tačkom. Naziv projekta može automatski da preuzme naziv pesme.</p>
+<label>Naziv projekta <span class="optional-mark">automatski</span><input id="projectName" maxlength="120" placeholder="Ako ostane prazno, koristi se naziv pesme"/></label>
+<label>Naziv pesme <span class="required-mark">•</span><input id="songTitle" maxlength="120" placeholder="Unesi tačan naziv pesme" required/></label>
+<label>Izvođač / kanal <span class="required-mark">•</span><input id="artistName" maxlength="120" value="Nedostaješ PUNOO pesme" required/></label>
+<div class="field-grid">
+<label>Vrsta videa
+              <select id="format">
+<option selected="" value="16:9">Dugi YouTube spot 16:9 — preporučeno</option>
+<option value="9:16">Shorts, TikTok i Reels 9:16</option>
+<option value="1:1">Kvadratni video 1:1</option>
+</select>
+</label>
+<label>Ciljna dužina scene
+              <div class="range-row"><input id="sceneDuration" max="8" min="2.4" step="0.2" type="range" value="5"/><output id="sceneDurationOut">5.0 s</output></div>
+</label>
+</div>
+<div class="project-format-quick" aria-label="Brzi izbor formata">
+<button class="format-choice" data-project-format="16:9" type="button"><strong>DUGI VIDEO</strong><span>16:9 YouTube</span></button>
+<button class="format-choice" data-project-format="9:16" type="button"><strong>SHORTS</strong><span>9:16 vertikalno</span></button>
+<button class="format-choice" data-project-format="1:1" type="button"><strong>KVADRAT</strong><span>1:1</span></button>
+</div>
+<div class="mini-status format-help" id="projectFormatHelp">Dugi YouTube spot se sada podrazumevano pravi horizontalno 16:9.</div>
+<label>Kompletan audio <span class="required-mark">•</span>
+<div class="dropzone" id="audioDrop" tabindex="0" role="button" aria-describedby="audioFileHelp">
+<strong>Izaberi ili prevuci MP3, WAV, M4A, AAC, OGG ili FLAC</strong>
+<span id="audioFileName">Pesma nije dodata</span>
+<input accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm" hidden="" id="audioFile" type="file"/>
+</div>
+</label>
+<div class="field-hint" id="audioFileHelp">Maksimalno 500 MB. Ako browser ne može da dekodira M4A/AAC, program će jasno tražiti MP3 ili WAV.</div>
+<audio controls="" id="audioPreview"></audio>
+<div class="actions compact-actions"><button class="ghost" id="clearAudioBtn" type="button">Ukloni audio</button><span class="mini-status" id="audioValidationStatus">Audio nije dodat.</span></div>
+</div>
+<div class="card">
+<h3>Kompletan potvrđen tekst <span class="required-mark">•</span></h3>
+<p class="card-intro">Nalepi ceo tekst redom. Oznake sekcija nisu stihovi i program ih pravilno odvaja.</p>
+<textarea class="lyrics" id="lyrics" placeholder="Nalepi ceo tekst. Oznake kao [Intro], [Strofa], [Refren] i [Outro] program prepoznaje kao delove pesme, a ne kao stihove."></textarea>
+<div class="counter-row"><span id="wordCount">0 reči</span><span id="lyricsLineCount">0 stvarnih stihova</span><span id="sectionCount">0 oznaka</span><span id="estimatedSceneCount">0 procenjenih scena</span></div>
+<div class="actions">
+<button class="primary" id="analyzeNowBtn">Potvrdi Korak 1 i analiziraj</button>
+<button class="secondary" id="validateStep1Btn" type="button">Proveri Korak 1</button>
+<button class="ghost" data-go="audio">Otvori analizu</button>
+</div>
+</div>
+</div>
+<div class="step1-audit card" id="step1AuditCard">
+  <div class="section-heading inner-heading">
+    <div><span class="step-label">KONTROLA KORAKA 1</span><h3>Da li je projekat spreman za analizu?</h3></div>
+    <span class="badge" id="step1AuditBadge">0/5</span>
+  </div>
+  <div class="step1-check-grid" id="step1CheckGrid">
+    <article data-step1-check="song"><strong>Naziv pesme</strong><span>Nedostaje</span></article>
+    <article data-step1-check="artist"><strong>Izvođač / kanal</strong><span>Nedostaje</span></article>
+    <article data-step1-check="audio"><strong>Audio</strong><span>Nije dodat</span></article>
+    <article data-step1-check="lyrics"><strong>Tekst</strong><span>Nema stihova</span></article>
+    <article data-step1-check="format"><strong>Format</strong><span>16:9</span></article>
+  </div>
+  <pre class="step1-report" id="step1Report">Unesi podatke iznad. Program neće nastaviti dok obavezne stavke nisu ispravne.</pre>
+</div>
+<div class="card youtube-quick-card" id="step1YoutubeQuickCard">
+<div class="section-heading inner-heading">
+<div><span class="step-label">YOUTUBE KANALI</span><h3>Poveži svoje kanale</h3></div>
+<span class="badge" id="step1YoutubeBadge">Nema povezanih kanala</span>
+</div>
+<div class="youtube-channel-grid" id="step1YoutubeChannelCards"></div>
+<div class="mini-status">Povezani kanali se koriste za istraživanje referenci u Koraku 3 i analizu u Koraku 6.</div>
+<div class="actions"><button class="primary" data-go="youtube" type="button">POVEŽI / UPRAVLJAJ KANALIMA</button></div>
+</div>
+</section>
+<section class="workspace" data-panel="audio">
+<div class="section-heading"><div><span class="step-label">KORAK 2</span><h2>Analiza zvuka</h2></div><span class="badge" id="analysisBadge">Nije pokrenuta</span></div>
+<div class="card">
+<div class="wave-surfer-shell" id="waveSurfer"><div class="mini-status">Interaktivni waveform će se pojaviti kada dodaš pesmu.</div></div>
+<canvas height="260" id="waveform" width="1400"></canvas>
+<div class="wave-controls">
+<button class="secondary" id="wavePlayBtn">▶ Pusti / pauziraj</button>
+<label>Zum waveforma <input id="waveZoom" max="300" min="10" step="10" type="range" value="40"/></label>
+<span class="mini-status" id="waveTime">00:00 / 00:00</span>
+</div>
+<div class="metric-grid extended">
+<article><span>Trajanje</span><strong id="metricDuration">—</strong></article>
+<article><span>Sample rate</span><strong id="metricSampleRate">—</strong></article>
+<article><span>Kanali</span><strong id="metricChannels">—</strong></article>
+<article><span>Brzi BPM</span><strong id="metricBpm">—</strong></article>
+<article><span>Precizniji BPM</span><strong id="metricBeatBpm">—</strong></article>
+<article><span>Pouzdanost</span><strong id="metricConfidence">—</strong></article>
+<article><span>Prosečna energija</span><strong id="metricEnergy">—</strong></article>
+<article><span>Spektralni centar</span><strong id="metricCentroid">—</strong></article>
+<article><span>Spektralni rolloff</span><strong id="metricRolloff">—</strong></article>
+<article><span>Spektralna ravnost</span><strong id="metricFlatness">—</strong></article>
+<article><span>Zero-crossing</span><strong id="metricZcr">—</strong></article>
+<article><span>Prvi udar</span><strong id="metricBeatOffset">—</strong></article>
+</div>
+<div class="notice warn">BPM je računarska procena. Za spore balade i živu svirku proveri ga ručno.</div>
+<div class="field-grid three">
+<label>Potvrđen BPM<input id="manualBpm" max="220" min="40" placeholder="Na primer: 74" type="number"/></label>
+<label>Žanr — ručni unos<input id="manualGenre" placeholder="Pop balada, rok, narodna..."/></label>
+<label>Glavna emocija<input id="manualMood" placeholder="Tuga, gubitak, nada..."/></label>
+</div>
+<div class="actions"><button class="primary" id="reanalyzeBtn">Ponovi analizu</button><button class="secondary" id="advancedAudioBtn">Napredna Meyda analiza</button><button class="secondary" id="preciseBpmBtn">Precizniji BPM</button><button class="secondary" id="buildStoryboardBtn">Napravi dinamični storyboard</button></div>
+</div>
+</section>
+<section class="workspace" data-panel="concept">
+<div class="section-heading"><div><span class="step-label">KORAK 3 — PROMPT + YOUTUBE + PLUS MOST 15.4</span><h2>Koncept, stil i istraživanje</h2></div><span class="badge" id="aiStatusBadge">ChatGPT Plus most</span></div>
+<div class="notice success"><strong>Najprostiji režim:</strong> instaliraš mali Chrome/Edge dodatak samo jednom. Posle toga program otvara tvoj privatni GPT, dodatak ubacuje Korak 3 zahtev i vraća odgovor nazad u Studio. Nema OpenAI API ključa, ngrok-a, Tailscale-a, Cloudflare tunela ni dodatnih API kredita.</div>
+<div class="notice warn"><strong>PC LITE režim:</strong> GTX 750 Ti 2 GB nije za lokalni Wan 14B ili SDXL/InstantID. Korak 3, istraživanje, ideje i storyboard rade normalno. Slike pravi ChatGPT Plus, a lokalno koristi proxy render 360p/720p i završni 1080p.</div>
+
+<div class="card idea-lab-card">
+<div class="section-heading inner-heading"><div><span class="step-label">A — ISTRAŽIVANJE</span><h3>Pesma + oba moja kanala + viralni javni signali</h3></div><span class="badge" id="researchBadge">NIJE POKRENUTO</span></div>
+<div class="actions"><button class="primary research-main-button" id="researchAndIdeasBtn">ANALIZIRAJ KANALE + VIRALNE SPOTOVE I POŠALJI U CHATGPT PLUS</button><button class="secondary" id="refreshResearchBtn">OSVEŽI INTERNET + KANALE</button><button class="secondary" id="continueAutoPipelineBtn">NASTAVI NA STORYBOARD</button><button class="ghost" id="clearTenIdeasBtn">OBRIŠI IDEJE</button></div>
+<div class="progress-wrap"><div class="progress-bar" id="automaticPipelineProgress"></div></div>
+<div class="mini-status" id="automaticPipelineStatus">KRUG 1: unesi pesmu i tekst. Program analizira oba kanala, traži aktuelne javne spotove i priprema zahtev za tvoj ChatGPT Plus. Posle 10 ideja izaberi jednu za KRUG 2.</div>
+<div class="card compact research-panel" id="realtimeResearchPanel">
+<div class="mini-status" id="researchStatus">Program još nije pretražio internet ni YouTube za ovu pesmu.</div>
+<div class="research-queries" id="researchQueries"></div>
+<div class="research-sources" id="researchSources"><div class="mini-status">Izvori će se pojaviti posle analize.</div></div><div class="channel-dna-summary" id="channelDnaSummary"><div class="mini-status">Analiza kanala još nije pokrenuta.</div></div><div class="viral-candidates-summary" id="viralCandidatesSummary"><div class="mini-status">Viralni javni kandidati još nisu pronađeni.</div></div>
+</div>
+<div class="mini-status" id="ideasImportStatus">Ideje još nisu napravljene.</div><div class="mini-status">Izabrana ideja: <span class="badge" id="selectedIdeaBadge">NIJE IZABRANA</span></div>
+<div class="ideas-grid" id="ideasGrid"></div>
+<details class="advanced-box offline-reserve"><summary>OFFLINE REZERVA — bez interneta i bez GPT-a</summary><div class="notice warn">Koristi lokalne šablone samo kao rezervu. Ne predstavljaju real-time istraživanje.</div><div class="actions"><button class="secondary" id="generateTenIdeasLocalBtn">NAPRAVI 10 LOKALNIH IDEJA</button></div></details>
+<details class="advanced-box"><summary>Stari ručni uvoz samo 10 ideja</summary><div class="actions"><button class="secondary" id="copyTenIdeasRequestBtn">Kopiraj zahtev</button><button class="ghost" id="downloadTenIdeasRequestBtn">Preuzmi TXT</button><button class="secondary" id="importTenIdeasBtn">Uvezi 10 ideja</button></div><label>JSON sa 10 ideja<textarea id="ideasJsonInput" rows="8"></textarea></label></details>
+</div>
+
+<div class="card step3-decision-card">
+<div class="section-heading inner-heading"><div><span class="step-label">B — 10 ODLUKA</span><h3>Kompletan kreativni plan pre storyboarda</h3></div><span class="badge" id="step3CompletenessBadge">0/10</span></div>
+<div class="notice info">Svako polje ima jednu jasnu svrhu. Program proverava da li su odluke konkretne, međusobno povezane i zasnovane na tekstu pesme.</div>
+<div class="field-grid step3-grid">
+<label>1. Žanr<input id="step3Genre" placeholder="Emotivna pop balada, moderni Balkan pop..."/></label>
+<label>2. Raspoloženje<input id="step3Mood" placeholder="Tuga bez melodrame, usamljenost, prihvatanje..."/></label>
+<label>3. Glavna priča<textarea id="conceptStory" rows="5" placeholder="Ko je glavni lik, šta želi, šta se menja i gde stiže na kraju?"></textarea></label>
+<label>4. Vizuelni stil<textarea id="visualStyle" rows="5" placeholder="Fotorealističan film, realno svetlo, teksture i period/radnja..."></textarea></label>
+<label>5. Paleta boja<input id="colorPalette" placeholder="Hladno plava i siva; amber samo uz sećanja..."/></label>
+<label>6. Kretanje kamere<input id="cameraStyle" placeholder="Statično na početku, spor push-in u refrenu..."/></label>
+<label>7. Lokacije<textarea id="locations" rows="4" placeholder="Svaka lokacija mora imati razlog vezan za stih ili narativni luk."></textarea></label>
+<label>8. Centralni simbol<textarea id="centralSymbol" rows="4" placeholder="Jedan predmet ili pojava koja se razvija kroz spot — bez klišea."></textarea></label>
+<label>9. Početni hook — 0–10 s<textarea id="openingHook" rows="4" placeholder="Šta gledalac vidi u prvoj sekundi, šta se otkriva do 3, 5 i 10 sekundi?"></textarea></label>
+<label>10. Završetak<textarea id="conceptEnding" rows="4" placeholder="Konkretna poslednja radnja i poslednji kadar; mora da završi priču."></textarea></label>
+</div>
+<label>Naziv koncepta<input id="conceptTitle" placeholder="Kratak radni naziv izabrane ideje"/></label>
+<div class="actions"><button class="primary" id="fillStep3FromIdeaBtn">POPUNI IZ IZABRANE IDEJE</button><button class="secondary" id="auditStep3Btn">PROVERI KORAK 3</button><button class="ghost" id="clearStep3Btn">OČISTI SAMO KREATIVNA POLJA</button></div>
+<pre class="test-report" id="step3AuditReport">Još nije pokrenuta provera.</pre>
+</div>
+
+<div class="card chatgpt-card manual-gpt-bridge plus-browser-bridge">
+<div class="section-heading inner-heading"><div><span class="step-label">C — GLAVNI MOST</span><h3>Moj ChatGPT Plus u programu — bez API ključa i tunela</h3></div><div><span class="badge" id="step3RoundBadge">KRUG 1 — 10 IDEJA</span> <span class="badge" id="plusBridgeBadge">DODATAK NIJE PROVEREN</span></div></div>
+<div class="notice success"><strong>Kako znaš da je povezano?</strong> Ako u svom ChatGPT tabu vidiš panel „MUZIČKI SPOT STUDIO“, dodatak je ubačen u ChatGPT. Ne postoji posebno dugme za prijavljivanje dodatka u Plus plan — koristi se nalog u kojem si već prijavljen.</div>
+<div class="notice warn"><strong>Važno:</strong> „Aktivan zahtev: NEMA“ ne znači da veza ne radi. To znači da još nisi napravio zadatak iz programa. Klikni test ispod ili pokreni pravi Korak 3.</div>
+<div class="actions"><button class="secondary" id="testPlusBridgeBtn" type="button">TESTIRAJ MOST BEZ PESME</button><button class="secondary" id="step3PreflightBtn" type="button">POTPUNA PROVERA KORAKA 3</button><button class="secondary" id="downloadStep3DiagnosticsBtn" type="button">PREUZMI DIJAGNOSTIKU</button><button class="ghost" type="button" onclick="refreshPlusBridgeStatus(true)">OSVEŽI STATUS VEZE</button><button class="danger" id="cancelPlusBridgeBtn" type="button">OTKAŽI AKTIVAN ZAHTEV</button><button class="danger" id="resetStep3WorkflowBtn" type="button">RESETUJ KORAK 3</button></div>
+<div class="simple-three-steps">
+<article class="simple-step-card"><span class="simple-step-number">1</span><div><h4>Instaliraj lokalni dodatak samo jednom</h4><p>Program otvara folder dodatka i Chrome/Edge stranicu za dodatke. Uključi Developer mode, klikni Load unpacked i izaberi otvoreni folder.</p><button class="primary" id="openPlusExtensionSetupBtn" type="button">1. OTVORI DODATAK I UPUTSTVO</button></div></article>
+<article class="simple-step-card"><span class="simple-step-number">2</span><div><h4>Tvoj privatni GPT je već dodat</h4><p>Program uvek koristi tačno ovaj GPT. Link više ne unosiš i ne čuvaš ručno.</p><label>Automatski GPT link<input id="plusPrivateGptUrl" value="https://chatgpt.com/g/g-6a62e905ca608191be135254d6f2fbcc-muzicki-spot-studio-privatni" readonly/></label><button class="secondary" id="savePlusPrivateGptUrlBtn" type="button">2. OTVORI MOJ GPT</button><button class="ghost" id="copyManualGptInstructionsBtn" type="button">Kopiraj ažurirane instrukcije za GPT</button></div></article>
+<article class="simple-step-card"><span class="simple-step-number">3</span><div><h4>Pošalji trenutni krug u ChatGPT Plus</h4><p>Program pravi mali i provereni zahtev, pa automatski otvara tvoj unapred dodat privatni GPT. Kada se u ChatGPT panelu pojavi naziv pesme ili TEST MOSTA, klikni prvo veliko dugme, a posle odgovora drugo.</p><button class="primary" id="sendStep3ToPlusBtn" type="button">POKRENI KORAK 3 I OTVORI CHATGPT</button><button class="secondary" id="pollPlusResultBtn" type="button">PROVERI DA LI JE ODGOVOR VRAĆEN</button></div></article>
+</div>
+
+<div class="card step3-director-card" id="step3PromptBridgeCard">
+<div class="section-heading inner-heading"><div><span class="step-label">D — KREATIVNI DIREKTOR</span><h3>Izaberi spot, napiši prompt i odredi broj scena/slika</h3></div><span class="badge" id="step3ModeBadge">REŽIM: 10 IDEJA</span></div>
+<div class="notice info"><strong>Dva načina rada:</strong> standardni režim prvo pravi 10 različitih ideja. Direktni režim koristi tvoj prompt kao glavni brief i odmah vraća priču, broj scena/slika, storyboard, image promptove i video promptove.</div>
+<div class="field-grid three">
+<label>Režim Koraka 3<select id="step3BridgeMode"><option value="ideas">Standardno — 10 ideja pa izbor</option><option value="prompt-to-spot">Direktno — moj prompt pravi kompletan spot</option></select></label>
+<label>Vrsta video spota<select id="step3SpotType"><option value="auto">Automatski prema pesmi</option><option value="urban-narrative">Moderan urbani filmski spot</option><option value="multi-location">Više lokacija i puna priča</option><option value="performance-story">Performance + filmska priča</option><option value="symbolic-studio">Simboličan studijski spot</option><option value="daylight-city">Svetao dnevni gradski spot</option><option value="road-travel">Putovanje / road movie</option><option value="public-event">Javni događaj / proslava</option><option value="one-take">Jedan kadar / real-time priča</option><option value="lyric-cinematic">Filmski lyric video</option><option value="animated">Animirani / ilustrativni spot</option><option value="low-budget">Low-budget, realno izvodljiv</option><option value="reference-led">Po izabranim YouTube referencama</option></select></label>
+<label>Vizuelni ton<select id="step3VisualTone"><option value="auto">Automatski</option><option value="modern-urban">Moderan i urban</option><option value="cinematic-realistic">Filmski i fotorealističan</option><option value="bright-day">Svetao i dnevni</option><option value="neon-night">Neon noć, bez klišea</option><option value="minimal-symbolic">Minimalistički i simboličan</option><option value="raw-documentary">Sirov dokumentarni stil</option><option value="premium-commercial">Premium komercijalni izgled</option></select></label>
+<label>Budžet / izvodljivost<select id="step3Budget"><option value="free">Besplatno / AI slike + montaža</option><option value="low" selected>Nizak budžet</option><option value="medium">Srednji budžet</option><option value="unlimited">Bez ograničenja — ideja prvo</option></select></label>
+<label>Plan lokacija<select id="step3LocationPlan"><option value="auto">Automatski prema priči</option><option value="one">Jedna lokacija, ali vizuelno raznovrsna</option><option value="three">Najmanje 3 lokacije</option><option value="five" selected>Najmanje 5 lokacija</option><option value="eight">8 ili više lokacija</option><option value="outdoor">Pretežno spolja / javni prostor</option></select></label>
+<label>Maksimalno scena / slika<select id="step3PromptMaxScenes"><option value="6">6</option><option value="8">8</option><option value="10">10</option><option value="12">12</option><option value="14">14</option><option value="16" selected>16</option><option value="18">18</option><option value="20">20</option><option value="24">24</option><option value="30">30</option><option value="36">36</option></select></label>
+<label>Željeno trajanje spota (sek)<input id="step3PromptDuration" type="number" min="15" max="900" step="1" placeholder="Prazno = trajanje audio fajla; bez audio fajla 60 s"/></label>
+<label>Prosečno trajanje jedne slike<select id="step3AverageShotLength"><option value="auto">Automatski prema vrsti spota</option><option value="2.5">2,5 s — veoma dinamično</option><option value="3.5">3,5 s — brzo</option><option value="4.5" selected>4,5 s — filmski balans</option><option value="5.5">5,5 s — sporije i emotivno</option><option value="7">7 s — minimalistički</option></select></label>
+<label>Odnos kadrova<select id="step3ShotMix"><option value="balanced">Balans širokih, srednjih i krupnih</option><option value="cinematic-wide">Više širokih filmskih kadrova</option><option value="emotion-close">Više krupnih emotivnih kadrova</option><option value="dynamic">Brzi raznovrsni kadrovi</option><option value="performance">Performance kadrovi + detalji</option></select></label>
+</div>
+<label>Prompt za video spot<textarea id="step3CustomSpotPrompt" rows="7" placeholder="Napiši tačno kakav spot želiš. Primer: Moderan urbani spot za emotivnu pop baladu. Muškarac peva pred ljudima, ali nikome ne priznaje da svaka pesma govori o istoj ženi. Želim dnevni grad, probu benda, javni nastup, krov zgrade i završetak pred publikom. Bez kiše, mračnog stana, telefona i prazne stolice."></textarea></label>
+<div class="check-row"><label><input id="step3UsePromptInIdeas" type="checkbox" checked/> Koristi moj prompt i u režimu 10 ideja</label><label><input id="step3RequireImagePrompts" type="checkbox" checked/> Obavezni detaljni image promptovi</label><label><input id="step3RequireVideoPrompts" type="checkbox" checked/> Obavezni video promptovi</label><label><input id="step3RequireYoutubeSources" type="checkbox" checked/> Obavezno pronađi YouTube reference</label></div>
+<div class="step3-estimate-grid"><div class="metric-card"><strong id="step3EstimatedScenes">—</strong><span>procenjene scene/slike</span></div><div class="metric-card"><strong id="step3EstimatedImagePrompts">—</strong><span>image promptova</span></div><div class="metric-card"><strong id="step3EstimatedVideoPrompts">—</strong><span>video promptova</span></div><div class="metric-card"><strong id="step3EstimatedDuration">—</strong><span>trajanje</span></div></div>
+<div class="actions"><button class="secondary" id="previewStep3PromptBtn" type="button">PREGLEDAJ ŠTA SE ŠALJE GPT-u</button><button class="ghost" id="clearStep3PromptBtn" type="button">OČISTI PROMPT</button></div>
+<div class="mini-status" id="step3CustomPromptStatus">Standardni režim prvo pravi 10 ideja. Prompt može dodatno da usmeri ideje.</div>
+<pre class="test-report" id="step3PromptPreview" hidden></pre>
+<div class="actions"><button class="secondary" id="editStep3FullPromptBtn" type="button">PRIKAŽI I UREDI TAČAN TEKST ZA CHATGPT</button><button class="ghost" id="resetStep3FullPromptBtn" type="button" hidden>VRATI AUTOMATSKI TEKST</button></div>
+<div class="field-hint" id="step3FullPromptHint" hidden>Ovo je TAČAN tekst koji će biti poslat ChatGPT-u za sledeći krug. Možeš ga izmeniti pre slanja. Zadrži pravila o formatu odgovora i zaključani identitet — bez njih program neće moći automatski da prihvati GPT odgovor.</div>
+<textarea class="lyrics" id="step3FullPromptEditor" hidden rows="16" spellcheck="false"></textarea>
+</div>
+
+<div class="card youtube-reference-card" id="step3YoutubeReferenceCard">
+<div class="section-heading inner-heading"><div><span class="step-label">E — YOUTUBE REFERENTNI SPOTOVI</span><h3>Pronađi i izaberi spotove kao vizuelnu referencu</h3></div><span class="badge" id="youtubeReferenceBadge">0 IZABRANO</span></div>
+<div class="notice info">Reference služe samo za analizu hooka, kamere, montaže, palete i strukture priče. Program nalaže GPT-u da ne kopira konkretne kadrove, glumce ili radnju.</div>
+<div class="field-grid three"><label>Upit za YouTube pretragu<input id="step3YoutubeQuery" placeholder="npr. emotional pop ballad urban official music video"/></label><label>Broj rezultata<select id="step3YoutubeMaxResults"><option value="8">8</option><option value="12" selected>12</option><option value="18">18</option><option value="24">24</option></select></label><label>Sortiranje<select id="step3YoutubeSort"><option value="momentum">Javni momentum</option><option value="views">Pregledi</option><option value="recent">Najnovije</option><option value="relevance">Relevantnost</option></select></label></div>
+<div class="actions"><button class="primary" id="searchStep3YoutubeBtn" type="button">PRETRAŽI YOUTUBE SPOTOVE</button><button class="secondary" id="fillYoutubeQueryBtn" type="button">NAPRAVI UPIT IZ PESME/PROMPTA</button><button class="ghost" id="clearYoutubeReferencesBtn" type="button">OBRIŠI IZBOR</button></div>
+<div class="field-grid"><label>Ručno dodaj YouTube link<input id="step3ManualYoutubeUrl" placeholder="https://www.youtube.com/watch?v=..."/></label><label>Naziv reference<input id="step3ManualYoutubeTitle" placeholder="Naziv spota ili kratka napomena"/></label></div><div class="actions"><button class="secondary" id="addManualYoutubeReferenceBtn" type="button">DODAJ RUČNU REFERENCU</button></div>
+<div class="mini-status" id="step3YoutubeSearchStatus">Pretraga još nije pokrenuta. Možeš izabrati do 4 reference.</div>
+<div class="youtube-reference-results" id="step3YoutubeResults"><div class="mini-status">Rezultati će se pojaviti ovde.</div></div>
+<div class="selected-reference-list" id="step3SelectedReferences"><div class="mini-status">Nijedan referentni spot nije izabran.</div></div>
+</div>
+
+<div class="card prompt-gallery-card" id="step3PromptGalleryCard">
+<div class="section-heading inner-heading"><div><span class="step-label">F — PROMPTOVI ZA SLIKE I VIDEO</span><h3>Promptovi koje je GPT vratio za svaku scenu</h3></div><span class="badge" id="step3PromptGalleryBadge">0 SCENA</span></div>
+<div class="notice info">Ovaj deo se popunjava nakon što ChatGPT vrati storyboard. Svaka scena mora imati odvojen image prompt i video prompt.</div>
+<div class="actions"><button class="secondary" id="copyAllImagePromptsBtn" type="button">KOPIRAJ SVE IMAGE PROMPTOVE</button><button class="secondary" id="copyAllVideoPromptsBtn" type="button">KOPIRAJ SVE VIDEO PROMPTOVE</button><button class="secondary" id="exportAllPromptsBtn" type="button">IZVEZI SVE PROMPTOVE</button></div>
+<div class="mini-status" id="step3PromptGallerySummary">Storyboard još nema promptove.</div>
+<div class="prompt-gallery" id="step3PromptGallery"></div>
+</div>
+
+<div class="progress-wrap"><div class="progress-bar" id="plusBridgeProgress"></div></div>
+<pre class="test-report" id="plusBridgeStatus">Proveravam da li je dodatak instaliran…</pre><pre class="test-report" id="step3PreflightReport">Potpuna provera Koraka 3 još nije pokrenuta.</pre>
+<details class="advanced-box manual-fallback"><summary>REZERVA: ručni JSON postupak kada dodatak ne radi</summary>
+<div class="notice warn">Ovo je samo rezerva. Glavni postupak je ChatGPT Plus dodatak iznad.</div>
+<div class="actions"><button class="secondary" id="exportStep3PackageBtn" type="button">Preuzmi Korak 3 paket</button><button class="secondary" id="copyStep3PromptBtn" type="button">Kopiraj START komandu</button><button class="secondary" id="chooseGptResponseFileBtn" type="button">Izaberi GPT JSON fajl</button><input id="gptResponseFile" type="file" accept=".json,application/json,text/plain" hidden/><button class="secondary" id="importGptResponseTextBtn" type="button">Uvezi nalepljeni JSON</button></div>
+<label>JSON odgovor privatnog GPT-a<textarea id="gptResponseJson" rows="10" placeholder="Nalepi samo JSON odgovor."></textarea></label>
+<div class="mini-status" id="manualBridgeStatus">Ručna rezerva je spremna.</div>
+</details>
+</div>
+<details class="advanced-box gpt-connect-box" id="gptSetupDetails" hidden><summary>OPCIONO: direktni GPT Actions most preko Cloudflare Quick Tunnel-a</summary>
+<div class="card chatgpt-card gpt-action-setup-card simple-gpt-setup">
+<div class="notice warn"><strong>Ovo nije preporučeni put.</strong> Cloudflare Quick Tunnel ne traži nalog, ali dobija novu privremenu adresu posle ponovnog pokretanja. Tada moraš ponovo da uvezeš novi OpenAPI URL u GPT Action. Ručni paket iznad nema taj problem.</div>
+<div class="section-heading inner-heading"><div><span class="step-label">DIREKTNI ACTION REŽIM</span><h3>Besplatan privremeni HTTPS most</h3></div><span class="badge" id="gptActionSetupBadge">NIJE POKRENUT</span></div>
+<div class="simple-three-steps">
+<article class="simple-step-card"><span class="simple-step-number">1</span><div><h4>Pokreni privremeni most</h4><p>Program sam preuzima zvanični cloudflared i proverava SHA-256/release podatke i Windows potpis.</p><button class="primary" id="restartCloudflareBtn" type="button">1. POKRENI CLOUDFLARE QUICK TUNNEL</button></div></article>
+<article class="simple-step-card"><span class="simple-step-number">2</span><div><h4>Kopiraj instrukcije</h4><button class="secondary" id="copyInstructionsGuideBtn" type="button">2. KOPIRAJ ACTION INSTRUKCIJE</button></div></article>
+<article class="simple-step-card"><span class="simple-step-number">3</span><div><h4>Uvezi OpenAPI URL</h4><button class="secondary" id="copySchemaGuideBtn" type="button">3. KOPIRAJ PRIVREMENI OPENAPI URL</button></div></article>
+</div>
+<label>Link mog GPT-a — opciono<input id="privateGptUrl" placeholder="https://chatgpt.com/g/..."/></label>
+<div class="actions"><button class="secondary" id="savePrivateGptUrlBtn">SAČUVAJ LINK</button><button class="primary" id="syncAndOpenGptBtn">SINHRONIZUJ I OTVORI GPT</button><button class="secondary" id="testTunnelBtn" type="button">PROVERI JAVNU VEZU</button></div>
+<div class="mini-status" id="gptActionSetupStatus">Cloudflare Quick Tunnel nije pokrenut.</div>
+<div class="card compact cloudflare-tunnel-setup">
+<div class="section-heading inner-heading"><div><span class="step-label">STATUS</span><h3>Privremeni most</h3></div><span class="badge" id="cloudflareTunnelBadge">ČEKA</span></div>
+<div class="field-grid"><label>Status<input id="cloudflareTunnelStatus" readonly/></label><label>Poslednja promena<input id="tunnelUpdatedAt" readonly/></label></div>
+<div class="mini-status" id="cloudflareTunnelHelp">URL se menja posle restarta.</div><pre class="tunnel-diagnostics" id="tunnelDiagnosticDetails">Čekam status...</pre>
+</div>
+<div class="field-grid"><label>Privremena javna adresa<input id="gptActionPublicUrl" readonly/></label><label>OpenAPI URL<input id="gptActionSchemaUrl" readonly/></label></div>
+<label class="hidden-setup-source">Instrukcije<textarea id="gptActionInstructions" readonly rows="3"></textarea></label>
+</div></details>
+</section>
+
+<section class="workspace" data-panel="storyboard">
+<div class="section-heading"><div><span class="step-label">KORAK 4</span><h2>Storyboard i vremenska mapa</h2></div><span class="badge" id="storyboardBadge">0 scena</span></div>
+<div class="card compact">
+<div class="actions">
+<button class="primary" id="regenerateStoryboardBtn">Ponovo napravi scene</button>
+<button class="secondary" id="generatePromptsBtn">Napravi sve promptove</button>
+<button class="ghost" id="copyAllPromptsBtn">Kopiraj sve promptove</button>
+<button class="ghost" id="exportCsvBtn">Izvezi storyboard CSV</button>
+<button class="ghost" id="importCsvBtn">Uvezi storyboard CSV</button>
+<input accept=".csv,text/csv" hidden="" id="storyboardCsvFile" type="file"/>
+</div>
+<div class="mini-status">Scene možeš da prevučeš mišem za ručno menjanje redosleda. Vremena će se automatski ponovo izračunati.</div>
+</div>
+<div class="storyboard-list" id="storyboardList"></div>
+</section>
+<section class="workspace" data-panel="characters">
+<div class="section-heading"><div><span class="step-label">KORAK 5</span><h2>Likovi i kontinuitet</h2></div><span class="badge" id="charactersBadge">0 likova</span></div>
+<div class="notice success"><strong>Glavna devojka je trajno zaključana.</strong> Njen ID blok se automatski stavlja u SVAKU scenu i ne može da se promeni, obriše ili zameni uvezenim JSON-om.</div>
+<div class="actions"><button class="primary" id="addCharacterBtn">Dodaj drugi lik</button><button class="secondary" id="addDefaultManBtn">Dodaj glavnog muškarca</button></div>
+<div class="characters-grid" id="charactersList"></div>
+</section>
+<section class="workspace" data-panel="youtube">
+<div class="section-heading"><div><span class="step-label">KORAK 6</span><h2>Više YouTube kanala i analiza</h2></div><span class="badge" id="youtubeConnectionBadge">Nema povezanih kanala</span></div>
+<div class="notice info"><strong>Dva načina.</strong> Za direktnu privatnu analitiku koristi lokalni OAuth i zvanični YouTube Analytics API. Bez povezivanja možeš uvesti CSV iz YouTube Studija. Program ne izmišlja CTR, retention ni preglede.</div>
+<div class="card youtube-connect-card">
+<div class="field-grid">
+<label>Google OAuth client_secret.json<input accept="application/json,.json" id="youtubeOAuthFile" type="file"/></label>
+<label>Naziv profila za povezivanje<input id="youtubeProfileLabel" placeholder="Na primer: Nedostaješ PUNOO pesme"/></label>
+<label>Aktivni kanal<select id="youtubeChannelSelect"><option value="">Nijedan kanal</option></select></label>
+<label>Period analize<select id="youtubeAnalysisDays"><option value="28">Poslednjih 28 dana</option><option selected="" value="90">Poslednjih 90 dana</option><option value="365">Poslednjih 365 dana</option></select></label>
+</div>
+<div class="actions"><button class="secondary" id="saveYoutubeOAuthBtn">Sačuvaj OAuth podešavanje</button><button class="primary" id="connectYoutubeBtn">Poveži još jedan kanal</button><button class="ghost" id="refreshYoutubeChannelsBtn">Osveži kanale</button><button class="secondary" id="analyzeYoutubeChannelBtn">Analiziraj aktivni kanal</button><button class="danger" id="disconnectYoutubeBtn">Ukloni aktivni kanal</button></div>
+<div class="actions"><button class="ghost" id="importYoutubeCsvBtn">Uvezi YouTube Studio CSV</button><input accept=".csv,text/csv" hidden="" id="youtubeCsvFile" type="file"/></div>
+<div class="mini-status" id="youtubeConnectStatus">Direktno povezivanje radi u lokalnoj verziji pokrenutoj preko jedinog dugmeta „POKRENI MUZIČKI SPOT STUDIO“.</div>
+<div class="youtube-channel-grid" id="youtubeChannelCards"></div>
+<div class="card analysis-report" id="youtubeAnalysisReport">Analiza kanala još nije pokrenuta.</div>
+</div>
+<div class="card youtube-trends-card">
+<div class="section-heading inner-heading"><div><span class="step-label">NAJNOVIJI JAVNI PODACI</span><h3>Analiza sličnih spotova i brzine rasta na YouTube-u</h3></div><span class="badge" id="youtubeTrendBadge">Nije pokrenuto</span></div>
+<div class="notice warn"><strong>Program ne obećava viralnost.</strong> Analizira najnovije dostupne javne metapodatke: preglede, starost videa, preglede po danu, trajanje i javni engagement. Tuđi CTR i retention nisu javni. Za tvoje povezane kanale koristi privatnu retention analizu.</div>
+<div class="field-grid three">
+<label>YouTube Data API ključ<input id="youtubeDataApiKey" placeholder="Besplatan ključ iz Google Cloud Console" type="password"/></label>
+<label>Upit za slične spotove<input id="youtubeTrendQuery" placeholder="tužna ljubavna pesma official music video"/></label>
+<label>Region<select id="youtubeTrendRegion"><option value="RS">Srbija</option><option value="HR">Hrvatska</option><option value="BA">Bosna i Hercegovina</option><option value="ME">Crna Gora</option><option value="MK">Severna Makedonija</option><option value="US">SAD</option></select></label>
+<label>Jezik<input id="youtubeTrendLanguage" value="sr"/></label>
+<label>Period<select id="youtubeTrendDays"><option value="30">30 dana</option><option selected="" value="90">90 dana</option><option value="180">180 dana</option><option value="365">365 dana</option></select></label>
+<label>Maksimalno rezultata<select id="youtubeTrendMax"><option value="10">10</option><option selected="" value="25">25</option><option value="50">50</option></select></label>
+</div>
+<div class="actions"><button class="secondary" id="saveYoutubeDataKeyBtn">Sačuvaj API ključ lokalno</button><button class="primary" id="runYoutubeTrendScanBtn">ANALIZIRAJ SLIČNE SPOTOVE SADA</button></div>
+<div class="analysis-report" id="youtubeTrendReport">Javna analiza još nije pokrenuta.</div>
+<hr/>
+<div class="field-grid"><label>Video ID sa mog povezanog kanala<input id="youtubeRetentionVideoId" placeholder="YouTube video ID"/></label><label>Retention period<select id="youtubeRetentionDays"><option value="90">90 dana</option><option selected="" value="365">365 dana</option></select></label></div>
+<div class="actions"><button class="secondary" id="analyzeYoutubeRetentionBtn">Analiziraj retention tog videa</button></div>
+<div class="analysis-report" id="youtubeRetentionReport">Retention još nije analiziran.</div>
+</div>
+<div class="two-col">
+<div class="card">
+<label>Naslov videa<input id="youtubeTitle"/></label>
+<label>Opis<textarea id="youtubeDescription" rows="12"></textarea></label>
+<label>Hashtagovi<input id="youtubeHashtags"/></label>
+<label>Pinovana poruka<textarea id="youtubePinned" rows="5"></textarea></label>
+</div>
+<div class="card">
+<h3>Shorts plan</h3>
+<div id="shortsList"></div>
+<div class="actions"><button class="primary" id="makeShortsPlanBtn">Napravi osnovni Shorts plan</button><button class="secondary" id="copyYoutubePackageBtn">Kopiraj YouTube paket</button></div>
+</div>
+</div>
+</section>
+<section class="workspace" data-panel="captions">
+<div class="section-heading"><div><span class="step-label">KORAK 7</span><h2>Tekst, prevod i automatski titlovi</h2></div><span class="badge" id="captionsBadge">0 titlova</span></div>
+<div class="notice success"><strong>Srpski je podržan.</strong> Desno se sada vidi pravi izgled teksta preko videa. Možeš koristiti originalni tekst, prevod ili oba jezika, a isti izgled se upisuje u završni spot i Shorts.</div>
+<div class="caption-studio-grid">
+<div class="card caption-settings-card">
+<div class="section-heading inner-heading"><div><span class="step-label">TITLOVI</span><h3>Automatsko pravljenje i izgled</h3></div><span class="badge" id="captionTranslationBadge">Bez prevoda</span></div>
+<div class="field-grid">
+<label>Izvor teksta
+              <select id="captionSource"><option value="lyrics">Potvrđeni tekst pesme — preporučeno</option><option value="whisper">Whisper automatsko prepoznavanje — srpski</option></select>
+</label>
+<label>Jezik pesme<select id="captionLanguage"><option value="sr">Srpski</option><option value="hr">Hrvatski</option><option value="bs">Bosanski</option><option value="auto">Automatski</option></select></label>
+<label>Šta se prikazuje u videu<select id="captionDisplayMode"><option value="original">Originalni tekst</option><option value="translation">Samo prevod</option><option value="bilingual">Original + prevod</option><option value="none">Bez teksta</option></select></label>
+<label>Ciljni jezik prevoda<select id="captionTargetLanguage"><option value="en">Engleski</option><option value="de">Nemački</option><option value="fr">Francuski</option><option value="es">Španski</option><option value="it">Italijanski</option><option value="pt">Portugalski</option><option value="hr">Hrvatski</option><option value="bs">Bosanski</option></select></label>
+<label>Položaj<select id="captionPosition"><option value="bottom">Dole</option><option value="center">Sredina</option><option value="top">Gore</option></select></label>
+<label>Poravnanje<select id="captionAlign"><option value="center">Sredina</option><option value="left">Levo</option><option value="right">Desno</option></select></label>
+<label>Veličina teksta<input id="captionFontSize" max="11" min="2.5" step="0.25" type="range" value="5.5"/><output id="captionFontSizeOut">5.5%</output></label>
+<label>Stil<select id="captionStyle"><option value="shadow">Tekst sa konturom</option><option value="box">Tekst u pozadinskoj kutiji</option><option value="yellow">Žuti tekst sa konturom</option><option value="karaoke">Karaoke — aktivna reč u boji</option><option value="wordpop">Reč po reč — Shorts</option><option value="cinema">Filmski minimalistički</option></select></label>
+<label>Brzi preset<select id="captionPreset"><option value="custom">Ručno podešavanje</option><option value="clean">Čist beli</option><option value="cinema">Filmski</option><option value="shorts">Shorts jak hook</option><option value="karaoke">Karaoke</option><option value="boxed">Kutija visoke čitljivosti</option><option value="bilingual">Dvojezični</option></select></label>
+<label>Font<select id="captionFontFamily"><option value="Arial">Arial</option><option value="Montserrat">Montserrat</option><option value="Georgia">Georgia</option><option value="Impact">Impact</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Verdana">Verdana</option></select></label>
+<label>Animacija<select id="captionAnimation"><option value="none">Bez animacije</option><option value="fade">Blago pojavljivanje</option><option value="pop">Blagi pop</option><option value="slide">Klizanje odozdo</option><option value="bounce">Kratki bounce</option><option value="typewriter">Ispisivanje teksta</option><option value="word">Reč po reč</option></select></label>
+<label>Boja teksta<input id="captionTextColor" type="color" value="#ffffff"/></label>
+<label>Boja aktivne reči<input id="captionHighlightColor" type="color" value="#ff3b69"/></label>
+<label>Boja konture<input id="captionStrokeColor" type="color" value="#000000"/></label>
+<label>Debljina konture<input id="captionStrokeWidth" max="20" min="0" step="1" type="range" value="8"/><output id="captionStrokeWidthOut">8</output></label>
+<label>Boja kutije<input id="captionBoxColor" type="color" value="#000000"/></label>
+<label>Providnost kutije<input id="captionBoxOpacity" max="100" min="0" type="range" value="68"/><output id="captionBoxOpacityOut">68%</output></label>
+<label>Širina teksta<input id="captionMaxWidth" max="96" min="40" type="range" value="88"/><output id="captionMaxWidthOut">88%</output></label>
+<label>Razmak redova<input id="captionLineHeight" max="170" min="90" type="range" value="122"/><output id="captionLineHeightOut">122%</output></label>
+<label>Vertikalno pomeranje<input id="captionVerticalOffset" max="35" min="-35" type="range" value="0"/><output id="captionVerticalOffsetOut">0%</output></label>
+<label>Najviše reči u redu<input id="captionWordsPerLine" max="12" min="2" type="number" value="7"/></label>
+</div>
+<div class="check-row"><label><input checked="" id="captionsEnabled" type="checkbox"/> Ubaci tekst u završni video</label><label><input id="captionUppercase" type="checkbox"/> VELIKA SLOVA</label><label><input checked="" id="captionAutoFit" type="checkbox"/> Automatski smanji tekst da stane</label></div>
+<div class="actions"><button class="primary" id="generateLyricsCaptionsBtn">Napravi titlove iz teksta pesme</button><button class="secondary" id="whisperCaptionsBtn">Automatski prepoznaj srpski — Whisper</button></div>
+<div class="progress-wrap"><div class="progress-bar" id="captionProgress"></div></div>
+<div class="mini-status" id="captionStatus">Titlovi još nisu napravljeni.</div>
+<details class="caption-details" open="">
+<summary>Prevod pesme i dvojezični titlovi</summary>
+<div class="actions"><button class="primary" id="translateCaptionsBtn">Automatski prevedi u pregledaču</button><button class="secondary" id="applyTranslationLinesBtn">Rasporedi ručni prevod</button><button class="danger" id="clearTranslationBtn">Obriši prevod</button></div>
+<label>Prevod pesme — jedan red prevoda za svaki red originala<textarea id="captionTranslationText" placeholder="Ovde će se pojaviti prevod. Možeš ga ručno ispraviti pre nego što ga program stavi u video." rows="9"></textarea></label>
+<label>Reči koje se ne prevode — odvoji zarezom<textarea id="captionProtectedTerms" placeholder="Nedostaješ PUNOO, ime izvođača, naziv pesme" rows="2"></textarea></label>
+<div class="mini-status" id="captionTranslationStatus">Automatski prevod koristi ugrađeni prevodilac pregledača kada je dostupan. Ručni prevod uvek radi.</div>
+</details>
+<details class="caption-details">
+<summary>Rečnik, brend stil i dodatni tekst</summary>
+<label>Rečnik ispravki — jedan par po redu: pogrešno=ispravno<textarea id="captionDictionary" placeholder="Nedostajes=Nedostaješ" rows="4"></textarea></label>
+<div class="actions"><button class="secondary" id="applyCaptionDictionaryBtn">Primeni ispravke na sve titlove</button></div>
+<div class="field-grid">
+<label>Naziv mog stila<input id="captionBrandPresetName" placeholder="Nedostaješ PUNOO stil"/></label>
+<label>Sačuvani stil<select id="captionBrandPresetSelect"><option value="">Nijedan</option></select></label>
+</div>
+<div class="actions"><button class="secondary" id="saveCaptionBrandPresetBtn">Sačuvaj moj stil</button><button class="ghost" id="applyCaptionBrandPresetBtn">Primeni sačuvani stil</button><button class="danger" id="deleteCaptionBrandPresetBtn">Obriši stil</button></div>
+<div class="field-grid">
+<label><span class="inline-check"><input id="captionTitleEnabled" type="checkbox"/> Naslov na početku</span><input id="captionTitleText" placeholder="NASLOV PESME"/></label>
+<label>Trajanje naslova<input id="captionTitleDuration" max="20" min="1" step="0.5" type="number" value="4"/></label>
+<label><span class="inline-check"><input id="captionCtaEnabled" type="checkbox"/> CTA na kraju</span><input id="captionCtaText" placeholder="CELA PESMA NA YOUTUBE KANALU"/></label>
+<label>Trajanje CTA<input id="captionCtaDuration" max="20" min="1" step="0.5" type="number" value="5"/></label>
+</div>
+</details>
+</div>
+<div class="card caption-monitor-card">
+<div class="section-heading inner-heading"><div><span class="step-label">ŽIVI PREGLED</span><h3>Video i tačan izgled teksta</h3></div><span class="badge" id="captionPreviewBadge">Demo pozadina</span></div>
+<div class="field-grid">
+<label>Format pregleda<select id="captionPreviewFormat"><option value="9:16">YouTube Shorts / TikTok / Reels 9:16</option><option value="16:9">YouTube spot 16:9</option><option value="1:1">Kvadrat 1:1</option></select></label>
+<label>Safe zona<select id="captionSafeZonePlatform"><option value="youtube">YouTube Shorts</option><option value="tiktok">TikTok</option><option value="instagram">Instagram Reels</option><option value="facebook">Facebook Reels</option><option value="none">Bez safe zone</option></select></label>
+<label>Scena za pregled<select id="captionPreviewScene"><option value="">Automatski</option></select></label>
+<label><span class="inline-check"><input checked="" id="captionShowSafeZones" type="checkbox"/> Prikaži prekrivene delove interfejsa</span></label>
+</div>
+<div class="caption-monitor-frame format-9-16" id="captionMonitorFrame">
+<video hidden="" id="captionMonitorVideo" playsinline="" preload="metadata"></video>
+<img alt="Pregled scene" hidden="" id="captionMonitorImage"/>
+<div class="caption-monitor-placeholder" id="captionMonitorPlaceholder"><span>VIDEO PREGLED</span><small>Učitaj video, poslednji render ili sliku scene</small></div>
+<div class="caption-safe-zones platform-youtube" id="captionSafeZonesOverlay"><span class="safe-top">TOP UI</span><span class="safe-right">PLATFORM UI</span><span class="safe-bottom">OPIS / DUGMAD</span></div>
+<div class="caption-title-overlay" id="captionTitleOverlay"></div>
+<div class="caption-live-overlay original" id="captionOriginalOverlay"></div>
+<div class="caption-live-overlay translation" id="captionTranslationOverlay"></div>
+<div class="caption-cta-overlay" id="captionCtaOverlay"></div>
+</div>
+<div class="caption-player-controls">
+<button class="secondary" id="captionPreviewPlayBtn">▶ Pusti</button>
+<input id="captionPreviewSeek" max="100" min="0" step="0.1" type="range" value="0"/>
+<span id="captionPreviewTime">00:00 / 00:00</span>
+</div>
+<div class="actions"><button class="primary" id="loadCaptionPreviewVideoBtn">Učitaj moj video</button><button class="secondary" id="useLastRenderPreviewBtn">Koristi poslednji render</button><button class="secondary" id="useScenePreviewBtn">Prikaži izabranu scenu</button><button class="ghost" id="useDemoPreviewBtn">Demo pozadina</button></div>
+<input accept="video/*" hidden="" id="captionPreviewVideoFile" type="file"/>
+<div class="caption-quality-report" id="captionReadabilityReport"></div>
+<canvas class="caption-preview-canvas" height="1280" hidden="" id="captionPreviewCanvas" width="720"></canvas>
+</div>
+</div>
+<div class="two-col caption-bottom-grid">
+<div class="card">
+<div class="section-heading inner-heading"><div><span class="step-label">TRANSKRIPT</span><h3>Klikni titl i skoči na taj deo videa</h3></div><span class="badge">Uređivanje po vremenu</span></div>
+<div class="captions-list" id="captionsList"></div>
+</div>
+<div class="card">
+<h3>Uvoz, izvoz i više jezičkih traka</h3>
+<div class="actions"><button class="secondary" id="exportSrtBtn">Original SRT</button><button class="secondary" id="exportVttBtn">Original VTT</button><button class="secondary" id="exportTranslatedSrtBtn">Prevod SRT</button><button class="secondary" id="exportBilingualSrtBtn">Dvojezični SRT</button><button class="ghost" id="importSubtitleBtn">Uvezi SRT/VTT</button><button class="danger" id="clearCaptionsBtn">Obriši titlove</button></div>
+<input accept=".srt,.vtt,text/vtt,application/x-subrip" hidden="" id="subtitleImportFile" type="file"/>
+<div class="notice info"><strong>Dodato po uzoru na savremene editore:</strong> živi video monitor, dvojezični titlovi, više jezičkih traka, bezbedne zone platformi, klikabilni transkript, rečnik ispravki, brend preset, automatsko uklapanje teksta, animacije reč-po-reč, naslov i CTA.</div>
+<div class="feature-checklist" id="captionFeatureChecklist"></div>
+</div>
+</div>
+</section>
+<section class="workspace" data-panel="media">
+<div class="section-heading"><div><span class="step-label">KORAK 8</span><h2>Slike i završni video</h2></div><span class="badge" id="renderBadge">Čeka materijal</span></div>
+<div class="notice success"><strong>Dva besplatna načina rada.</strong> Filmski pokret fotografije radi odmah u pregledaču. Pravi AI pokret lica, tela, kose i kamere radi lokalno preko Wan 2.1 + ComfyUI, bez API kredita i bez automatskog watermarka.</div>
+<div class="card chatgpt-images-card">
+<div class="section-heading inner-heading"><div><span class="step-label">CHATGPT PLUS — AUTOMATSKI RED SLIKA</span><h3>Privatni Custom GPT generiše i vraća sve slike</h3></div><span class="badge" id="chatGptBridgeBadge">Provera veze...</span></div>
+<div class="notice success"><strong>Zvanični GPT Actions prenos fajlova.</strong> Privatni GPT uzima sledeću scenu, generiše jednu sliku, vraća je programu kroz <code>openaiFileIdRefs</code> i odmah nastavlja sledeću. Program automatski uvozi pristigle slike i može da nastavi Wan image-to-video kada su sve spremne.</div>
+<div class="field-grid three">
+<label>Generator slika<select id="imageGenerationEngine"><option selected="" value="manual-chatgpt">ChatGPT Plus browser most — preporučeno</option><option value="comfyui">Lokalni ComfyUI InstantID — jak PC</option></select></label>
+<label>Status mosta<input id="chatGptHostStatus" readonly="" value="Provera..."/></label>
+<label><span class="inline-check"><input checked="" id="autoContinueAfterGptImages" type="checkbox"/> Automatski nastavi image-to-video i render</span></label>
+</div>
+<div class="actions">
+<button class="primary" id="syncImagesToGptBtn">SINHRONIZUJ SVE SCENE SA GPT-OM</button>
+<button class="primary" id="openGptImageQueueBtn">OTVORI MOJ GPT I KRENI</button>
+<button class="secondary" id="refreshGptImagesBtn">Preuzmi nove slike sada</button>
+<button class="ghost" id="copyChatGptImagePackBtn">Rezervno: kopiraj sve promptove</button>
+<button class="ghost" id="downloadChatGptImagePackBtn">Rezervno: preuzmi promptove</button>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="chatGptImageProgress"></div></div>
+<div class="mini-status" id="chatGptBridgeStatus">Prvo završi jednokratno podešavanje privatnog GPT Action-a u kartici Koncept i stil.</div>
+</div>
+<div class="card t2i-card">
+<div class="section-heading inner-heading"><div><span class="step-label">AUTOMATSKE SLIKE</span><h3>Text-to-image + zaključani identitet — ComfyUI InstantID</h3></div><span class="badge" id="t2iBadge">Nije povezano</span></div>
+<div class="notice success"><strong>Kompletan ID devojke je trajno zaključan.</strong> Svaki image prompt i video prompt u kome se ona pojavljuje mora doslovno početi punim ID blokom: 23 godine, ravna jet-crna kosa do ramena, duboke smaragdnozelene oči, svetla koža, ovalno simetrično lice, beauty mark ispod levog oka, mala minimalistička Mini Mouse tetovaža na desnoj nozi iznad kolena prema butini i moderna crvena haljina. Program ne prihvata promenu osobe.</div>
+<div class="two-col">
+<div>
+<div class="field-grid">
+<label>Režim generisanja<select id="t2iMode"><option selected="" value="instantid">InstantID — isto lice, preporučeno</option><option value="basic">SDXL — samo zaključani tekst</option></select></label>
+<label>SDXL checkpoint<input id="t2iCheckpoint" spellcheck="false" value="sd_xl_base_1.0.safetensors"/></label>
+<label>Koraci<input id="t2iSteps" max="60" min="4" type="number" value="30"/></label>
+<label>CFG<input id="t2iCfg" max="12" min="1" step="0.5" type="number" value="4.5"/></label>
+<label>InstantID model<input id="t2iInstantIdModel" spellcheck="false" value="ip-adapter.bin"/></label>
+<label>InstantID ControlNet<input id="t2iControlNet" spellcheck="false" value="instantid/diffusion_pytorch_model.safetensors"/></label>
+<label>Face provider<select id="t2iProvider"><option value="CUDA">CUDA — NVIDIA</option><option selected="" value="CPU">CPU — sporije, kompatibilnije</option><option value="ROCM">ROCM — AMD</option><option value="CoreML">CoreML — Apple</option></select></label>
+<label><input id="autoI2vAfterImage" type="checkbox"/> Posle slike automatski napravi i Wan video</label>
+</div>
+<label>Referentna slika iste devojke<input accept="image/*" id="lockedGirlReferenceFile" type="file"/></label>
+<div class="actions"><button class="secondary" id="generateLockedGirlReferenceBtn">Automatski napravi početni ID devojke</button><button class="primary" id="testT2iBtn">Proveri generator slika</button><button class="secondary" id="generateAllImagesBtn">Automatski generiši SVE slike</button><button class="danger" disabled="" id="stopT2iBtn">Zaustavi slike</button></div>
+<div class="progress-wrap"><div class="progress-bar" id="t2iProgress"></div></div>
+<div class="mini-status" id="t2iStatus">Dodaj referentnu sliku, instaliraj InstantID u ComfyUI i klikni „Proveri“.</div>
+</div>
+<div>
+<div class="reference-preview" id="lockedGirlReferencePreview">Referentna slika nije dodata.</div>
+<label>KOMPLETAN TRAJNO ZAKLJUČANI ID — doslovan tekst<textarea id="lockedGirlIdentityView" readonly="" rows="16"></textarea></label>
+<div class="actions"><button class="secondary" id="copyLockedGirlIdentityBtn" type="button">KOPIRAJ KOMPLETAN ID</button><button class="primary" id="verifyLockedGirlIdentityBtn" type="button">PROVERI ID U SVIM PROMPTOVIMA</button></div>
+<div class="mini-status" id="lockedGirlHash"></div>
+</div>
+</div>
+</div>
+<div class="card i2v-card">
+<div class="section-heading inner-heading"><div><span class="step-label">LOKALNI AI</span><h3>Pravi image-to-video — Wan 2.1 + ComfyUI</h3></div><span class="badge" id="i2vBadge">Nije povezano</span></div>
+<div class="notice warn"><strong>Besplatno i bez nametnutog watermarka.</strong> Generisanje se izvršava na tvom računaru. Potreban je lokalni ComfyUI i odgovarajuća grafička karta. Modeli zauzimaju oko 25 GB; bez dovoljno jake grafičke karte generisanje može biti veoma sporo ili neće raditi.</div>
+<div class="field-grid three">
+<label class="wide">ComfyUI portable folder
+            <span class="inline-field"><input id="comfyFolderPath" placeholder="Klikni Izaberi ComfyUI folder" readonly=""/><button class="secondary" id="selectComfyFolderBtn" type="button">Izaberi folder</button></span>
+<small class="field-help" id="comfyFolderStatus">Program pamti izabrani folder i automatski pokreće ComfyUI.</small>
+</label>
+<label>ComfyUI adresa<input id="comfyEndpoint" spellcheck="false" value="http://127.0.0.1:8188"/></label>
+<label>AI FPS<select id="i2vFps"><option selected="" value="16">16 fps — preporučeno</option><option value="24">24 fps — više frejmova</option></select></label>
+<label>Maksimalno trajanje scene<select id="i2vMaxSeconds"><option value="3">3 s — brže</option><option selected="" value="5">5 s — preporučeno</option><option value="8">8 s — sporije</option></select></label>
+<label>Koraci generisanja<input id="i2vSteps" max="40" min="4" type="number" value="20"/></label>
+<label>CFG<input id="i2vCfg" max="12" min="1" step="0.5" type="number" value="6"/></label>
+<label><input checked="" id="useGeneratedClips" type="checkbox"/> Koristi AI klipove u završnom spotu</label>
+</div>
+<details class="advanced-box">
+<summary>Napredna podešavanja modela</summary>
+<div class="field-grid">
+<label>Wan I2V model<input id="i2vModel" spellcheck="false" value="wan2.1_i2v_480p_14B_fp8_scaled.safetensors"/></label>
+<label>Text encoder<input id="i2vTextEncoder" spellcheck="false" value="umt5_xxl_fp8_e4m3fn_scaled.safetensors"/></label>
+<label>VAE<input id="i2vVae" spellcheck="false" value="wan_2.1_vae.safetensors"/></label>
+<label>CLIP Vision<input id="i2vClipVision" spellcheck="false" value="clip_vision_h.safetensors"/></label>
+</div>
+<label>Negativni prompt<textarea id="i2vNegativePrompt" rows="4">watermark, logo, text, subtitles, deformed hands, extra fingers, duplicated limbs, changed identity, different face, flicker, jitter, low quality, blurry, frozen frame</textarea></label>
+</details>
+<div class="actions">
+<button class="primary" id="testComfyBtn">Proveri ComfyUI i modele</button>
+<button class="secondary" id="generateAllI2vBtn">Automatski napravi AI video za sve slike</button>
+<button class="danger" disabled="" id="stopI2vBtn">Zaustavi AI red</button>
+<a class="button-link ghost" download="" href="WAN-I2V-WORKFLOW.json">Preuzmi Wan workflow</a>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="i2vProgress"></div></div>
+<div class="mini-status" id="i2vStatus">Instaliraj ComfyUI i Wan modele, pokreni ga sa CORS opcijom, pa klikni „Proveri“.</div>
+</div>
+<div class="render-controls card compact">
+<div class="field-grid three">
+<label>Rezolucija
+            <select id="renderResolution"><option value="720">720p — brzo testiranje</option><option selected="" value="1080">1080p — preporučeno</option><option value="2160">4K / 2160p — veoma zahtevno</option></select>
+</label>
+<label>FPS<select id="renderFps"><option value="30">30 fps</option><option value="24">24 fps</option></select></label>
+<label>Tranzicija<select id="transitionDuration"><option value="0.4">0.4 s</option><option selected="" value="0.7">0.7 s</option><option value="1">1.0 s</option></select></label>
+<label>Maksimalna slika<select id="imageMaxSize"><option value="1280">1280 px — manje memorije</option><option value="1920">1920 px — standardno</option><option selected="" value="2560">2560 px — preporučeno</option><option value="4096">4096 px — 4K izvor, mnogo memorije</option></select></label>
+<label><input checked="" id="autoSmartCrop" type="checkbox"/> Automatski pametan kadar</label>
+<label><input checked="" id="autoPalette" type="checkbox"/> Analiza boja pri unosu</label>
+<label>Šta se pravi<select id="renderScope"><option value="full">Ceo muzički spot — koristi format iz Koraka 1</option><option value="short-1">Shorts 1 — vertikalni</option><option value="short-2">Shorts 2 — vertikalni</option><option value="short-3">Shorts 3 — vertikalni</option></select></label>
+<label>Automatski pokret slike<select id="motionPreset"><option value="cinematic">Filmski — različit po sceni</option><option value="zoom-in">Sporo približavanje</option><option value="zoom-out">Sporo udaljavanje</option><option value="pan">Pomeranje levo/desno</option><option value="dynamic">Jači pokret za Shorts</option><option value="static">Bez pokreta</option></select></label>
+<label>Jačina pokreta<input id="motionStrength" max="100" min="0" type="range" value="55"/><output id="motionStrengthOut">55%</output></label>
+<label><input checked="" id="burnCaptions" type="checkbox"/> Dodaj tekst/titlove u video</label><label><input checked="" id="preferAiClips" type="checkbox"/> Prednost imaju AI video-klipovi</label><label><input id="allowPlaceholderScenes" type="checkbox"/> Dozvoli prazne rezervne kadrove</label>
+</div>
+<div class="actions"><button class="primary" id="renderVideoBtn">Napravi video od slika + pesme</button><button class="danger" disabled="" id="cancelRenderBtn">Zaustavi render</button><button class="secondary" id="smartCropAllBtn">Pametno kadriraj sve</button><button class="secondary" id="analyzePalettesBtn">Proveri boje svih slika</button></div>
+<div class="progress-wrap"><div class="progress-bar" id="renderProgress"></div></div>
+<div class="mini-status" id="renderStatus">Render još nije pokrenut. Traje koliko i sama pesma.</div>
+<video controls="" id="renderPreview"></video>
+<a class="download-link" hidden="" id="downloadVideoLink">Preuzmi završni video</a>
+<button class="secondary" hidden="" id="convertMp4Btn">Pretvori WebM u MP4 pomoću FFmpeg.wasm</button>
+<div class="mini-status" id="ffmpegStatus"></div>
+</div>
+<div class="media-gallery" id="mediaGallery"></div>
+</section>
+<section class="workspace" data-panel="tools">
+<div class="section-heading"><div><span class="step-label">KORAK 9</span><h2>Besplatni alati i provera programa</h2></div><span class="badge" id="toolsBadge">Provera nije pokrenuta</span></div>
+<div class="notice info"><strong>Osnovni alati rade bez dodatnih servisa.</strong> HyperFrames projekat i analiza referentnih spotova mogu da rade na slabijem računaru. ComfyUI, Wan, LibreChat i Open Generative AI su opcioni; mogu zahtevati zasebnu instalaciju, jači GPU ili poseban API ključ.</div>
+<div class="actions"><button class="primary" id="runSelfTestsBtn">Proveri ceo program</button><button class="secondary" id="refreshToolsBtn">Osveži status alata</button><button class="secondary" id="refreshMaintenanceBtn">Osveži dijagnostiku</button></div>
+<div class="card production-audit-card">
+<div class="section-heading inner-heading"><div><span class="step-label">NOVA KONTROLA 15.4</span><h3>Spremnost projekta, kontinuitet i izvoz za montažu</h3></div><span class="badge" id="productionReadinessBadge">Nije provereno</span></div>
+<div class="notice info"><strong>Jedna provera pre rendera.</strong> Program traži praznine i preklapanja u tajmingu, nedostajuće promptove, greške zaključanog identiteta, previše slične susedne scene, slike, AI klipove, titlove i YouTube paket.</div>
+<div class="actions"><button class="primary" id="analyzeProductionBtn">Proveri spremnost projekta</button><button class="secondary" id="autoFixStoryboardBtn">Automatski sredi bezbedne greške</button><button class="secondary" id="checkIntegrityBtn">Proveri SHA-256 fajlove</button></div>
+<div class="actions"><button class="ghost" id="exportProductionManifestBtn">Izvezi production manifest</button><button class="ghost" id="exportEdlBtn">Izvezi EDL timeline</button><button class="ghost" id="exportAudioMarkersBtn">Izvezi audio markere CSV</button></div>
+<pre class="test-report" id="productionAuditReport">Provera projekta još nije pokrenuta.</pre>
+<pre class="test-report integrity-report" id="integrityReport">SHA-256 provera još nije pokrenuta.</pre>
+</div>
+<div class="card maintenance-card">
+<div class="section-heading inner-heading"><div><span class="step-label">STABILNOST 15.4</span><h3>Backup, dijagnostika i bezbednost</h3></div><span class="badge" id="maintenanceBadge">Provera...</span></div>
+<div class="notice success"><strong>Automatski backup projekta.</strong> Program čuva poslednjih 10 JSON kopija na računaru. Slike i audio i dalje čuvaj kroz kompletan ZIP izvoz.</div>
+<div class="actions"><button class="primary" id="backupNowBtn">Napravi backup sada</button><button class="secondary" id="restoreLatestBackupBtn">Vrati poslednji backup</button><button class="ghost" id="openBackupFolderBtn">Otvori backup folder</button></div>
+<pre class="test-report" id="maintenanceReport">Čekam dijagnostiku...</pre>
+</div>
+<div class="notice info"><strong>GitHub moduli:</strong> HyperFrames izvoz i LITE analiza rezova su sada ugrađeni. Zvanični PySceneDetect, faster-whisper, Real-ESRGAN i RIFE ostaju opcioni. LibreChat i Open Generative AI dodati su kao spoljni konektori, ne kao obavezni teški programi.</div>
+<div class="tool-grid" id="toolStatusGrid"></div>
+<div class="card test-report-card"><h3>Rezultat provere</h3><div class="test-report" id="selfTestReport">Provera još nije pokrenuta.</div></div>
+</section>
+</main>
+<dialog id="characterDialog">
+<form id="characterForm" method="dialog">
+<h2>Lik</h2>
+<input id="characterId" type="hidden"/>
+<label>Ime lika<input id="characterName" required=""/></label>
+<label>Uloga<input id="characterRole" placeholder="Glavni lik, devojka, sporedni lik..."/></label>
+<label>Zaključani opis<textarea id="characterLocked" required="" rows="9"></textarea></label>
+<label>Negativni prompt<textarea id="characterNegative" rows="5"></textarea></label>
+<div class="actions"><button class="ghost" id="cancelCharacterBtn" type="button">Otkaži</button><button class="primary" id="saveCharacterBtn" value="default">Sačuvaj lik</button></div>
+</form>
+</dialog>
+<div aria-hidden="true" hidden="" id="legacyChatGptCompatibility">
+<input id="chatGptSceneNumber" type="number" value="1"/>
+<select id="chatGptSendMode"><option value="single">single</option></select>
+<textarea id="aiJsonInput"></textarea>
+<div id="aiImportStatus"></div>
+<button id="copyChatGptRequest" type="button"></button>
+<button id="downloadChatGptRequest" type="button"></button>
+<button id="importAiJsonBtn" type="button"></button>
+<button id="clearAiJsonBtn" type="button"></button>
+</div>
+<div aria-live="polite" class="toast" id="toast" role="status"></div>
+<div class="skin-gallery-modal" id="skinGalleryModal" hidden><div class="skin-gallery-shell"><div class="skin-gallery-head"><div><span class="step-label">24 RAZLIČITA UI SISTEMA</span><h2>Moderni urbani skinovi</h2><p>Ne menjaju samo boju: menjaju geometriju, kartice, navigaciju, tipografiju, senke i pozadinski ritam.</p></div><button type="button" id="closeSkinGalleryBtn">×</button></div><div class="skin-gallery-grid" id="skinGalleryGrid"></div></div></div>
+<script defer="" src="vendor-loader.js?v=15.4"></script>
+<script defer="" src="locked-girl-identity.js?v=15.4"></script>
+<script defer="" src="theme.js?v=15.4"></script>
+<script defer="" src="app.js?v=15.4"></script>
+<script defer src="bridge-prompts.js?v=15.6.0"></script>
+<script defer src="v14-features.js?v=15.4"></script>
+<script defer src="github-modules.js?v=15.4"></script>
+</body>
+</html>

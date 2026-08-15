@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "Muzički Spot Studio — ChatGPT Plus Most",
+  "version": "15.6.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7zqE0f4hwDWZ1R+s2G+BmUUxYms3NHtER7XU7rC/pKQEJt8TXaYTIwAtVo3RnjMJ3RWzVHFet48R76JmuFcvHCVenBYMBCG7xrOxVNRvwaQcTM6gds9kQQ5COq8DU35Shh9AvHEcsJ88lrgcI/+5w0qDcpXcRCCXegyWOnsDeVQ1ODUJqAy73YcLeBdbxiIoL9fCsK0SfLdMg+BfIzV/yC4hXu0WNGt4h1JSHTzvFfRNyn78x0kYcrmuH2whfoSe4G6yHEKnzV5l8zbZblvdx+j51NqG4eHTU213D3gVp28FE2Zs/6aeok4Zbbxsy65fCbOOnMToJ4Wt4AHFHqw1WwIDAQAB",
+  "description": "Lokalni most za privatni GPT: YouTube reference, prompt → priča → storyboard, image i video promptovi, standardni Korak 3.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "clipboardWrite",
+    "scripting",
+    "notifications"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "https://chatgpt.com/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://127.0.0.1/*",
+        "http://localhost/*"
+      ],
+      "js": [
+        "local-app.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://chatgpt.com/*"
+      ],
+      "js": [
+        "chatgpt-bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Muzički Spot Studio — ChatGPT Plus Most",
+    "default_popup": "popup.html"
+  }
+}

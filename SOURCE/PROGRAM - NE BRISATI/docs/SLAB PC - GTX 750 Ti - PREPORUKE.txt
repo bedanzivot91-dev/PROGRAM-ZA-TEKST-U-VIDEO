@@ -1,0 +1,82 @@
+PREPORUKE ZA INTEL i5-4460 + 16 GB RAM + GTX 750 Ti 2 GB
+========================================================
+
+REALNA PROCENA
+--------------
+Ovaj računar je dovoljan za:
+- rad programa;
+- tekst i storyboard;
+- internet i YouTube metapodatke;
+- ChatGPT Plus JSON pakete;
+- browser audio analizu;
+- titlove;
+- 360p proxy;
+- 1080p finalni render, ali brzina zavisi od broja slojeva i ne garantuje rad u realnom vremenu;
+- faster-whisper tiny na CPU-u;
+- povremeni tiled Real-ESRGAN;
+- kratku RIFE interpolaciju u niskoj rezoluciji.
+
+Nije realno dobar za:
+- Wan 14B lokalno;
+- SDXL + InstantID lokalno;
+- 4K kompoziting sa velikim brojem slojeva;
+- duge RIFE klipove u 1080p;
+- masovno upscale-ovanje stotina slika;
+- teške lokalne vision modele za lice i šake.
+
+AUTOMATSKA ZAŠTITA
+------------------
+Program proverava VRAM pre modela.
+PREUZMI-WAN-MODELE.ps1 prekida rad ispod 12 GB VRAM-a.
+PREUZMI-INSTANTID-MODELE.ps1 prekida rad ispod 8 GB VRAM-a.
+Na GTX 750 Ti te skripte neće bespotrebno potrošiti desetine gigabajta.
+
+PREPORUČEN TOK
+--------------
+1. ChatGPT Plus: istraživanje, ideje, storyboard i slike.
+2. Program: audio, kontinuitet, promptovi, titlovi i timeline.
+3. Proxy: 360p/15fps.
+4. Ispravi greške.
+5. Final: 1080p/24fps.
+6. Real-ESRGAN samo za lošu pojedinačnu sliku.
+7. RIFE samo kada jedan kratak AI klip ima vidljivo trzanje.
+
+FASTER-WHISPER
+--------------
+Model: tiny
+Device: CPU
+Compute type: int8
+CPU threads: 4
+Workers: 1
+Obradi jednu pesmu odjednom.
+Base model koristi samo kada tiny pogrešno čuje mnogo reči.
+
+REAL-ESRGAN
+-----------
+Scale: 2
+Tile: 128
+Ulaz: jedna ili nekoliko slika
+Ne koristi x4 za ceo spot bez potrebe.
+Posle upscale-a proveri lice, kožu i oštrinu — alat može da izmisli detalje.
+
+RIFE
+----
+Ulaz: 360p ili 720p
+Dužina: po mogućnosti 3–10 sekundi
+Faktor: 2× frejmovi
+Ne koristi na celom spotu dok prvo ne proveriš jedan probni klip.
+
+RENDER
+------
+Proxy: 360p, 15fps, 1.8 Mbps
+Final: 1080p, 24fps, oko 12 Mbps
+Zatvori igre, browser tabove i druge programe pre finalnog rendera.
+Ostavi najmanje 20 GB slobodnog prostora za privremene fajlove.
+Ne pokreći RIFE, upscale i finalni render istovremeno.
+
+WINDOWS
+-------
+Ažuriraj NVIDIA drajver na poslednju verziju koja podržava GTX 750 Ti.
+Ne instaliraj nepoznate „driver booster“ programe.
+Windows page file ostavi na System managed.
+Power plan može biti High performance tokom rendera, ali prati temperaturu i stabilnost starijeg računara.

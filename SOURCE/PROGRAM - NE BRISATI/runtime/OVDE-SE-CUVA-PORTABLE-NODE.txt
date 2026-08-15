@@ -1,0 +1,1 @@
+Portable Node.js se ovde automatski preuzima samo ako na računaru nema podržane Node.js verzije.

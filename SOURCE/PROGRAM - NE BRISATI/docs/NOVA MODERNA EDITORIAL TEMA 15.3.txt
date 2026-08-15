@@ -1,0 +1,36 @@
+MUZIČKI SPOT STUDIO FREE 15.3
+NOVA MODERNA EDITORIAL TEMA — NEDOSTAJEŠ PUNOO
+
+Tema je napravljena prema dostavljenim referencama. Nije urađena samo promena boje.
+
+GLAVNI VIZUELNI SISTEM
+- skoro crna galerijska pozadina #050506;
+- crimson crveni akcent #D31343;
+- krem-bela tipografija;
+- veliki editorial serif naslovi;
+- mala, široko razmaknuta uppercase navigacija;
+- tanke dijagonalne linije u pozadini;
+- diskretne bokeh tačke i crveni geometrijski akcenti;
+- ravne kartice i skoro potpuno uklonjeno zaobljenje;
+- bez šarenih gradijenata, staklastih glow efekata i „gaming dashboard“ izgleda;
+- minimalna dugmad sa jasnim crvenim ili belim prioritetom;
+- statusi i metričke kartice kao urednički grid.
+
+STRUKTURNE PROMENE
+- logo je promenjen u NP•;
+- hero naslov je veliki serif, kao naslov magazina ili filmskog sajta;
+- navigacija je ravna traka sa crvenom donjom linijom aktivnog koraka;
+- sekcije imaju velike serif naslove i tanke razdelne linije;
+- forme su ravne, crne i imaju precizne tanke obrube;
+- drop zona je grafički jednostavna i dobija crimson akcent pri prevlačenju;
+- Korak 1 ima posebnu uredničku kontrolnu tablu;
+- responsive pravila čuvaju čitljivost na manjim ekranima.
+
+PODRAZUMEVANA TEMA
+Pri prvom pokretanju program automatski bira „Nedostaješ PUNOO Editorial“. Ostala 24 urbana skina ostaju dostupna zato što su ranije tražena, ali nova tema je početni i glavni izgled programa.
+
+TEHNIČKI FAJL
+PROGRAM - NE BRISATI/public/editorial-theme.css
+
+NAPOMENA
+Tema koristi sistemske fontove Georgia/Times kao pouzdan serifni fallback, pa ne preuzima niti deli spoljne font fajlove.

@@ -1,0 +1,23 @@
+MSS ChatGPT Plus Most 15.4
+==========================
+
+Ovaj dodatak se učitava kroz Chrome/Edge „Load unpacked“.
+
+Šta je novo u 15.4:
+- AUTOMATSKI REŽIM (podrazumevano UKLJUČEN): dodatak sam ubacuje i šalje zahtev u ChatGPT,
+  čeka da odgovor bude gotov i sam ga vraća u program — bez ručnog klikanja po krugovima.
+  Dugme „AUTOMATSKI REŽIM“ u panelu na chatgpt.com uključuje/isključuje ovo ponašanje;
+  izbor se pamti. Kada je isključen, koriste se stara dva dugmeta („1. UBACI I POŠALJI“,
+  „2. VRATI ODGOVOR“) — ostaju kao ručna rezerva ako ChatGPT promeni izgled sajta pa
+  automatika ne prepozna polje za poruku ili dugme za slanje.
+- port opseg za pronalaženje programa usklađen na 4180–4239 (ranije 4180–4199).
+- verzije usklađene na 15.4.0 svuda (manifest, EXTENSION_VERSION, BRIDGE_VERSION).
+
+Ranije (15.0):
+- podrška za standardni Korak 3 (10 ideja → izbor → storyboard)
+- podrška za direktan režim „prompt → spot“
+- validacija odgovora za concept + storyPlan + scenes
+- jasniji status aktivnog zadatka u popup-u i ChatGPT panelu
+
+Napomena o broju promptova: koliko scena/promptova GPT napravi po pesmi kontroliše se
+poljem „Maksimalno scena/slika“ u Koraku 3 unutar programa (podrazumevano 16, može i manje).

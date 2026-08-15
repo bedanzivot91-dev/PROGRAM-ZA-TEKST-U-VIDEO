@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Muzički Spot Studio</title>
+<style>
+  html,body{margin:0;height:100%;background:#05070d;display:flex;align-items:center;justify-content:center;font-family:Georgia,"Times New Roman",Times,serif;overflow:hidden}
+  .wrap{text-align:center;color:#f5f7fb}
+  .logo{font-size:15px;letter-spacing:.24em;text-transform:uppercase;color:#d31343;font-weight:700;margin-bottom:14px}
+  h1{margin:0 0 22px;font-size:26px;font-weight:500;letter-spacing:-.02em}
+  .bar{width:220px;height:3px;background:rgba(130,160,210,.18);border-radius:2px;overflow:hidden;margin:0 auto}
+  .bar > i{display:block;width:40%;height:100%;background:#d31343;border-radius:2px;animation:slide 1.1s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-120%)}100%{transform:translateX(340%)}}
+  @media (prefers-reduced-motion:reduce){.bar > i{animation:none;width:100%}}
+</style>
+<div class="wrap">
+  <div class="logo">NP•</div>
+  <h1>Muzički Spot Studio</h1>
+  <div class="bar"><i></i></div>
+</div>

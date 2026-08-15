@@ -1,0 +1,13 @@
+node_modules/
+dist/
+PROGRAM - NE BRISATI/data/backups/*.json
+PROGRAM - NE BRISATI/data/backups/daily/
+PROGRAM - NE BRISATI/data/*.log
+PROGRAM - NE BRISATI/*.log
+PROGRAM - NE BRISATI/runtime/pyscenedetect-venv/
+PROGRAM - NE BRISATI/runtime/cloudflared/*.exe
+PROGRAM - NE BRISATI/tools/ffmpeg-portable/
+PROGRAM - NE BRISATI/tools/realesrgan-ncnn-vulkan/
+PROGRAM - NE BRISATI/tools/rife-ncnn-vulkan/
+PROGRAM - NE BRISATI/tools/faster-whisper-lite/
+PROGRAM - NE BRISATI/tools/__pycache__/

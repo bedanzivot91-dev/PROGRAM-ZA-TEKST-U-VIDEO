@@ -1,0 +1,127 @@
+{
+  "name": "muzicki-spot-studio-free",
+  "productName": "Muzicki Spot Studio Free",
+  "version": "15.6.0",
+  "description": "Lokalni Windows desktop program za izradu muzičkog spota od pesme do završnog videa.",
+  "private": true,
+  "main": "desktop/main.js",
+  "author": "Nedostaješ PUNOO",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "test": "npm run test:static && npm run test:server && npm run test:lyrics && npm run test:alignment && npm run test:audio-probe && npm run test:audio-projects && npm run test:stems && npm run test:transcription && npm run test:auto-lyrics && npm run test:lyrics-source && npm run test:bpm && npm run test:music-analysis && npm run test:timeline && npm run test:scene-planner && npm run test:scene-candidates && npm run test:identity && npm run test:tattoo && npm run test:image-provider && npm run test:locations && npm run test:wardrobe && npm run test:hooks && npm run test:visual-diversity && npm run test:extension-identity && npm run test:cors && npm run test:extension-stabilizer && npm run test:bridge-errors && npm run test:batch-queue && npm run test:ai-validator && npm run test:identity-sync && npm run test:project-status && npm run test:project-backup && npm run test:project-export && npm run test:text-overlay-models && npm run test:font-manager && npm run test:line-breaker && npm run test:text-layout && npm run test:smart-placement && npm run test:karaoke && npm run test:text-animation && npm run test:style-presets && npm run test:overlay-export && npm run test:overlay-storage && npm run test:overlay-api && npm run test:bridge-prompts",
+    "test:static": "node tests/test-static.js",
+    "test:server": "node tests/test-server.js",
+    "test:electron": "node tests/test-electron.js",
+    "test:lyrics": "node tests/test-lyrics-parser.js",
+    "test:alignment": "node tests/test-lyrics-alignment.js",
+    "test:audio-probe": "node tests/test-audio-probe.js",
+    "test:audio-projects": "node tests/test-audio-projects-integration.js",
+    "test:stems": "node tests/test-stem-separation.js",
+    "test:transcription": "node tests/test-transcription-provider.js",
+    "test:auto-lyrics": "node tests/test-auto-lyrics.js",
+    "test:lyrics-source": "node tests/test-lyrics-source-tracking.js",
+    "test:bpm": "node tests/test-bpm-candidates.js",
+    "test:music-analysis": "node tests/test-music-analysis.js",
+    "test:timeline": "node tests/test-timeline-validator.js",
+    "test:scene-planner": "node tests/test-scene-planner.js",
+    "test:scene-candidates": "node tests/test-scene-candidates.js",
+    "test:identity": "node tests/test-locked-identity.js",
+    "test:tattoo": "node tests/test-tattoo-visibility.js",
+    "test:image-provider": "node tests/test-image-generation-provider.js",
+    "test:locations": "node tests/test-location-registry.js",
+    "test:wardrobe": "node tests/test-wardrobe-registry.js",
+    "test:hooks": "node tests/test-hook-scene-validator.js",
+    "test:visual-diversity": "node tests/test-visual-diversity-validator.js",
+    "test:extension-identity": "node tests/test-extension-identity.js",
+    "test:cors": "node tests/test-cors.js",
+    "test:extension-stabilizer": "node tests/test-extension-stabilizer.js",
+    "test:bridge-errors": "node tests/test-bridge-error-message.js",
+    "test:batch-queue": "node tests/test-scene-batch-queue.js",
+    "test:ai-validator": "node tests/test-ai-response-validator.js",
+    "test:identity-sync": "node tests/test-locked-identity-server-sync.js",
+    "test:project-status": "node tests/test-project-status.js",
+    "test:project-backup": "node tests/test-project-backup.js",
+    "test:project-export": "node tests/test-project-export.js",
+    "test:text-overlay-models": "node tests/test-text-overlay-models.js",
+    "test:font-manager": "node tests/test-font-manager.js",
+    "test:line-breaker": "node tests/test-lyrics-line-breaker.js",
+    "test:text-layout": "node tests/test-text-layout-engine.js",
+    "test:smart-placement": "node tests/test-smart-text-placement-engine.js",
+    "test:karaoke": "node tests/test-karaoke-engine.js",
+    "test:text-animation": "node tests/test-text-animation-engine.js",
+    "test:style-presets": "node tests/test-text-style-presets.js",
+    "test:overlay-export": "node tests/test-text-overlay-export.js",
+    "test:overlay-storage": "node tests/test-lyrics-overlay-storage.js",
+    "test:overlay-api": "node tests/test-lyrics-overlay-api.js",
+    "test:bridge-prompts": "node tests/test-bridge-prompts.js",
+    "pack:win": "electron-builder --win --dir",
+    "dist:win": "electron-builder --win nsis",
+    "dist:portable": "electron-builder --win portable",
+    "dist:all": "electron-builder --win nsis portable",
+    "dist:publish": "electron-builder --win nsis --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.nedostajespunoo.muzickispotstudio",
+    "productName": "Muzicki Spot Studio Free",
+    "copyright": "Nedostaješ PUNOO",
+    "artifactName": "${productName}-${version}-${os}.${ext}",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "POPUNI-GITHUB-KORISNICKO-IME",
+        "repo": "POPUNI-NAZIV-REPOZITORIJUMA"
+      }
+    ],
+    "files": [
+      "desktop/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "PROGRAM - NE BRISATI",
+        "to": "PROGRAM",
+        "filter": [
+          "**/*",
+          "!data/backups/**",
+          "!data/secure/**",
+          "!**/*.log"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "Muzicki-Spot-Studio-Free-${target}-v${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Muzicki Spot Studio",
+      "artifactName": "Muzicki-Spot-Studio-Free-Setup-v${version}.${ext}",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "Muzicki-Spot-Studio-Free-Portable-v${version}.${ext}"
+    }
+  }
+}

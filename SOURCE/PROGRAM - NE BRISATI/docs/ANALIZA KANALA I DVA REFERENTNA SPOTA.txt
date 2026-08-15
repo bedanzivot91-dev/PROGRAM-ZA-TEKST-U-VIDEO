@@ -1,0 +1,38 @@
+ANALIZA KANALA I DVA REFERENTNA SPOTA — VERZIJA 15.3
+===================================================
+
+Ovaj dokument je kraći pregled podataka ugrađenih u data/channel-dna-base.json.
+
+KANALI
+1. Nedostaješ PUNOO — @nedostajespunooo91
+   Uloga: citati, Shorts i emotivne pesme.
+   Javni signal: sezonski/događajni naslovi i jasne emocionalne tvrdnje mogu snažno da odskaču.
+
+2. Nedostaješ PUNOO pesme — @nedostajespunoo91pesme
+   Uloga: autorske balade, lyric i narativni spotovi.
+   Javni signal: trenutno brži rast; konkretni konflikti, odluke i neizgovorene poruke često rade bolje od opštih naslova.
+
+ŠTA TREBA ZADRŽATI
+- direktnu emociju;
+- jasan ugao naratora;
+- centralni predmet, odluku ili događaj;
+- fotorealistične likove;
+- prelom na refrenu;
+- thumbnail koji priču objašnjava jednim kadrom.
+
+ŠTA TREBA SMANJITI
+- mračan stan kao automatski svet;
+- telefon/prozor/kiša/prazna stolica bez veze sa stihom;
+- statičan lik koji samo gleda;
+- cela pesma u jednoj plavo-sivoj noći;
+- ista garderoba, objektiv i kompozicija;
+- deset ideja koje su ista priča.
+
+REFERENTNI SPOT 1 — SVE ME PODSETI NA TEBE
+Čuva se princip višelokacijske realistične priče sa vidljivim radnjama, javnim prostorima i čestim promenama kadra. Ne kopiraju se scene.
+
+REFERENTNI SPOT 2 — BUBAMARO MOJA MILA
+Čuva se princip čistog simboličnog sveta, jake ograničene palete, macro detalja, performansa i sporih transformacija. Ne kopira se beli studio/crvena haljina.
+
+KOMBINACIJA KOJU PROGRAM TRAŽI
+Za svaku pesmu GPT mora da predloži i narativne i simboličke pravce, ali zatim da ih potpuno prilagodi konkretnom tekstu. Neke pesme treba da budu svetle, dnevne, putujuće ili događajne. Tuga nije isto što i mrak.

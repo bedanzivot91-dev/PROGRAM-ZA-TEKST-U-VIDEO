@@ -1,0 +1,64 @@
+MUZIČKI SPOT STUDIO FREE 15.3
+DETALJNA PROVERA KORAKA 1 — PROJEKAT, AUDIO I TEKST
+
+1. ŠTA KORAK 1 MORA DA URADI
+Korak 1 prikuplja samo podatke bez kojih nijedan kasniji rezultat ne može biti pouzdan:
+- naziv pesme;
+- izvođač ili kanal;
+- format videa;
+- ciljnu dužinu scene;
+- kompletan audio-fajl;
+- kompletan potvrđen tekst pesme.
+Naziv projekta je opcion. Ako ostane prazan, pri potvrdi se automatski koristi naziv pesme.
+
+2. PRONAĐENE I ISPRAVLJENE GREŠKE
+- Dugme za potvrdu je ranije moglo da preskoči logičan redosled. Sada potvrđuje Korak 1, izvršava analizu i otvara Korak 2.
+- Naziv pesme, izvođač, audio i pravi stihovi nisu imali jednu centralnu blokirajuću proveru. Dodata je validateStep1 kontrola.
+- Oznake [Intro], [Verse], [Chorus] i slične ranije su mogle da naduvaju broj teksta. Sada se broje samo stvarni stihovi.
+- Neispravan novi audio mogao je da obriše prethodni audio i scene pre nego što browser utvrdi da li ga uopšte može pročitati. Sada se novi fajl prvo potpuno dekodira u memoriji. Stari projekat se briše tek kada je novi audio potvrđeno čitljiv.
+- Sačuvani projekat je mogao da prikazuje naziv audio-fajla iako je IndexedDB audio obrisan čišćenjem browsera. Pri pokretanju se sada proverava stvarno postojanje audio-bloba. Lažni status se briše i korisnik dobija jasnu poruku.
+- Zamena audio-fajla sada briše stare scene, slike, video-klipove, kreativne ideje i referentnu sliku samo nakon uspešne provere novog fajla. Tako se ne mešaju dve pesme.
+- Dodato je bezbedno uklanjanje audio-fajla uz potvrdu i jasno brisanje zavisnih rezultata.
+- Dodata je granica od 500 MB i jasna provera ekstenzije/MIME tipa.
+- Projekat više ne vraća nesаčuvanu pesmu iz prethodnog pokretanja. Launcher dodaje jedinstveni launch ID, a privremena sesija je vezana samo za taj konkretan start. Samo eksplicitno sačuvan projekat prelazi u sledeće pokretanje.
+
+3. KONTROLA KOJA SE VIDI U INTERFEJSU
+Korak 1 sada ima pet statusnih kartica:
+- Naziv pesme;
+- Izvođač / kanal;
+- Audio;
+- Tekst;
+- Format.
+Dugme „Proveri Korak 1“ prikazuje blokirajuće greške i upozorenja. Program ne nastavlja dok blokirajuće stavke nisu ispravne.
+
+4. DODATNE PAMETNE PROVERE
+Program upozorava kada:
+- postoji manje od četiri stvarna stiha;
+- nalepљene su samo oznake sekcija;
+- više od 45% redova izgleda duplirano;
+- tekst je neuobičajeno kratak ili dugačak u odnosu na trajanje zvuka;
+- audio traje manje od 15 sekundi;
+- audio je veći od 250 MB;
+- ciljna dužina kadra pravi više od 120 scena;
+- tekst sadrži više od 50.000 karaktera, što obično znači da je uz stihove zalepljen JSON ili prompt.
+
+5. BROJAČI
+U realnom vremenu se prikazuju:
+- broj reči bez oznaka sekcija;
+- broj stvarnih stihova;
+- broj strukturnih oznaka;
+- procenjen broj scena na osnovu trajanja zvuka i ciljne dužine kadra.
+
+6. AUDIO TOK
+Pri izboru audio-fajla program radi sledeće:
+1) proverava tip, veličinu i da fajl nije prazan;
+2) pokušava potpuno lokalno dekodiranje;
+3) ako dekodiranje ne uspe, prethodni projekat ostaje netaknut;
+4) ako uspe, tek tada uklanja rezultate prethodne pesme;
+5) čuva novi audio u IndexedDB;
+6) pravi preview i waveform;
+7) računa trajanje, sample rate, kanale, energiju i BPM procenu;
+8) osvežava kontrolu Koraka 1.
+
+7. REZULTAT
+Korak 1 sada ne može tiho da prođe sa praznim naslovom, bez stvarnog audio-fajla ili sa samim oznakama umesto teksta. Greška se zadržava u vidljivom izveštaju, a ne samo u kratkoj toast poruci.

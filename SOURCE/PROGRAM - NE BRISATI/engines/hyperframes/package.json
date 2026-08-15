@@ -1,0 +1,12 @@
+{
+  "name": "mss-hyperframes-engine",
+  "version": "15.4.0",
+  "private": true,
+  "description": "Opcioni HyperFrames CLI motor za Muzički Spot Studio 15.4.",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "hyperframes": "0.7.62"
+  }
+}

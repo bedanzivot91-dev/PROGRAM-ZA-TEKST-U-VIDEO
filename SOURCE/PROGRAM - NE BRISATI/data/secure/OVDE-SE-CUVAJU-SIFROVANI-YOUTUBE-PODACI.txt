@@ -1,0 +1,1 @@
+Na Windows-u program ovde čuva YouTube podatke zaštićene DPAPI CurrentUser zaštitom.

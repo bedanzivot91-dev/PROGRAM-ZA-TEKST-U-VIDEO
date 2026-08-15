@@ -1,0 +1,15 @@
+MUZIČKI SPOT STUDIO 15.3 — KOMPLETAN ZAKLJUČANI ID DEVOJKE
+
+Ovaj tekst je jedini važeći ID. Ne sme se skraćivati, prepričavati ni menjati.
+
+the same woman, same identity, same person in every image, 23 years old, straight jet-black shoulder-length hair, deep emerald green eyes, light skin, oval symmetrical face, thin natural eyebrows, straight elegant nose, natural medium lips, subtle beauty mark under the left eye, small minimalist Mini Mouse tattoo on the right leg above the knee toward the upper thigh, tasteful modern red dress, green eyes must remain identical in every image, eye color must never change, identical facial features in every image, identical facial geometry in every image, identical hairstyle in every image, identical shoulder-length jet-black hair in every image, identical age in every image, the same person across all images, never change the woman, never replace her with another person, photorealistic real human appearance, natural skin texture, realistic hands, realistic fingers, realistic anatomy. Negative prompt: different woman, different person, changed face, changed facial features, changed facial geometry, changed eye color, blue eyes, brown eyes, non-green eyes, different hairstyle, short hair, hair below the shoulders, long hair, curly hair, missing beauty mark, beauty mark in another position, missing Mini Mouse tattoo, tattoo on another leg, tattoo in another position, different tattoo design, different age, different clothing, different dress, dress that is not red, blonde hair, cartoon, anime, illustration, doll face, plastic skin, beauty filter, deformed hands, extra fingers, fused fingers, duplicated limbs, extra arms, extra legs, broken anatomy, text, logo, watermark
+
+SHA-256 ID BLOKA:
+f938d1cd7fa5d66e8ae524df534e32b1ae02a88574ec4554dd9365c7c87b36d2
+
+PRAVILA:
+- Program doslovno stavlja ovaj blok na početak svakog image prompta.
+- Program doslovno stavlja isti blok na početak svakog video prompta.
+- GPT odgovor ne može da zameni ovaj blok; program ga ponovo nameće pri uvozu.
+- Stariji, izmenjeni ID sa promenljivom tetovažom, promenljivom garderobom ili dodatim telesnim osobinama više nije važeći.
+- Moderna crvena haljina je deo zaključanog ID-a.

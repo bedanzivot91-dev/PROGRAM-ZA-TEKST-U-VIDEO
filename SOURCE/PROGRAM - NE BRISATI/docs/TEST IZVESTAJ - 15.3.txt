@@ -1,0 +1,44 @@
+MUZIČKI SPOT STUDIO FREE 15.3 — ZAVRŠNI TEST IZVEŠTAJ
+
+OBIM PROVERE
+- glavni CMD launcher i Node bootstrap;
+- launcher.js i server.js;
+- kompletan JavaScript;
+- JSON i Python pomoćnici;
+- HTML struktura, ID oznake i lokalne zavisnosti;
+- Korak 1 validacija, parser teksta i audio tok;
+- reset/čuvanje projekta;
+- moderna editorial tema;
+- ključni lokalni API endpointi;
+- localhost zaštita;
+- završni ZIP i SHA-256 integritet.
+
+STATIČKI TESTOVI
+- JavaScript: 18 fajlova, 0 sintaksnih grešaka.
+- JSON: 5 fajlova, 0 grešaka parsiranja.
+- Python: 2 pomoćnika, 0 compile grešaka.
+- HTML: 452 jedinstvene ID oznake, 0 duplikata.
+- Lokalne HTML zavisnosti: 11 provereno, 0 nedostaje.
+- Literalne JS reference na DOM ID: 364 provereno, 0 nedostaje.
+
+KORAK 1 REGRESIONI TESTOVI
+- same sekcijske oznake bez stihova: pravilno odbijeno;
+- ispravan naslov, izvođač, audio metadata i četiri stiha: prihvaćeno;
+- prazan naziv projekta: automatski popunjen naslovom pesme;
+- veliki broj duplih stihova: upozorenje prikazano;
+- podešavanje koje pravi previše scena: upozorenje prikazano;
+- novi audio se dekodira pre brisanja prethodnog projekta;
+- nedostajući IndexedDB audio ne ostavlja lažni status „spreman“;
+- privremena sesija je vezana za jedinstveni launch ID.
+
+SERVER TESTOVI
+Provereni su /health, app status, modules status, Plus bridge status, security status, system profile, diagnostics, početna HTML stranica, heartbeat, localhost zaštita i neispravan backup zahtev.
+Rezultat: 11/11 testova prošlo.
+Lažni X-Forwarded-For zahtev je pravilno odbijen HTTP 403 odgovorom.
+Neispravan backup vraća HTTP 400, a ne internu grešku 500.
+
+VIZUELNA PROVERA
+HTML i CSS struktura su potpuno provereni. Automatski Chromium screenshot localhosta u ovom radnom okruženju blokira administratorska politika („127.0.0.1 is blocked“), pa stvarni Windows/Chrome prikaz nije lažno označen kao izvršen. Tema je proverena kroz selektore, CSS promenljive, strukturu elemenata i lokalne resurse.
+
+WINDOWS OGRANIČENJE TESTA
+Stvarni dvoklik CMD fajla i browser audio dekodiranje na korisnikovom Windows računaru ne mogu se izvršiti u ovom Linux okruženju. CMD fajlovi su provereni kao ASCII/DOS batch sa CRLF završecima, a JavaScript/server tok je izvršno testiran.

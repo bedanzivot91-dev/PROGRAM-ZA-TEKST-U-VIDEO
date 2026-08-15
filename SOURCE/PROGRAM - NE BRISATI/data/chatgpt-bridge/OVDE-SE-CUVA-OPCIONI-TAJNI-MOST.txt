@@ -1,0 +1,5 @@
+OVDE PROGRAM AUTOMATSKI ČUVA PRIVREMENE PODATKE LOKALNOG CHATGPT PLUS MOSTA.
+
+Ne kopiraj i ne objavljuj fajl bridge-token.txt ako ga program napravi.
+Token važi samo za lokalnu vezu između Studija i dodatka u tvom browseru.
+Ovaj folder može ostati prazan pre prvog pokretanja programa.

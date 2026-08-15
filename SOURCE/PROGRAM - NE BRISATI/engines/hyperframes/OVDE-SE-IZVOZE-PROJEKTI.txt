@@ -1,0 +1,3 @@
+Muzički Spot Studio 15.3 izvozi kompletan HyperFrames projekat kao ZIP direktno iz browsera.
+Raspakuj izvezeni ZIP i pokreni samo fajl „POKRENI HYPERFRAMES PROJEKAT.cmd“.
+Prvi HyperFrames render može zahtevati internet da npx preuzme zvanični CLI.

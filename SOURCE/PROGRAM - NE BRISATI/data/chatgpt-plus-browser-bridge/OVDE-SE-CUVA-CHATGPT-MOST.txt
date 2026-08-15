@@ -1,0 +1,3 @@
+Ovaj folder program koristi za privremeni lokalni ChatGPT Plus most.
+Ne kopiraj njegove radne fajlove u drugi računar i ne objavljuj lokalni bridge ključ.
+Aktivni zadaci, rezultati i heartbeat podaci automatski se brišu pri novom pokretanju servera.

@@ -1,0 +1,3 @@
+ISPRAVLJENO: kompletna validacija Koraka 1, bezbedna zamena audio-fajla, provera stvarnog audio asseta, jedinstvena launch sesija i nova editorial tema.
+
+NIJE MOGUĆE POTVRDITI U OVOM OKRUŽENJU: stvarni Windows dvoklik, Windows SmartScreen i browser audio kodeci na konkretnom računaru.
