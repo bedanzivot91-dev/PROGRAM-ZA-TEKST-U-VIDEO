@@ -24,6 +24,7 @@ const lyricsOverlayStorage = require('./lyrics-overlay-storage');
 const textOverlayExport = require('./text-overlay-export');
 const textStylePresets = require('./text-style-presets');
 const fontManager = require('./font-manager');
+const textVideoTools = require('./text-video-tools');
 
 function startServer(options = {}) {
 const VERSION = '15.6';
@@ -1480,6 +1481,43 @@ const server = http.createServer(async (req, res) => {
       if (!requireLocal(req, res)) return;
       return sendJson(res, 200, { ok: true, fonts: fontManager.listAvailableFonts() });
     }
+    // --- Napredni alati za tekst-u-video workflow ---
+    // Ove rute su bez spoljašnjih servisa i mogu se koristiti i u desktop UI-ju i pri batch obradi.
+    if (pathname === '/api/text-tools/features' && req.method === 'GET') {
+      if (!requireLocal(req, res)) return;
+      return sendJson(res, 200, { ok: true, features: [
+        'lrc-import', 'lrc-export', 'srt-import', 'karaoke-word-timings',
+        'caption-quality-check', 'caption-normalization', 'long-caption-split',
+        'safe-area-presets', 'beat-marker-detection', 'beat-scene-cuts', 'batch-export-plan'
+      ] });
+    }
+    if (pathname.startsWith('/api/text-tools/') && req.method === 'POST') {
+      if (!requireLocal(req, res)) return;
+      try {
+        const body = await readBody(req, 2_000_000);
+        const route = pathname.slice('/api/text-tools/'.length);
+        const result = {
+          'lrc/import': () => textVideoTools.parseLrc(body.text, { durationMs: body.durationMs }),
+          'lrc/export': () => ({ lrc: textVideoTools.exportLrc(body.cues, body.metadata) }),
+          'srt/import': () => ({ cues: textVideoTools.parseSrt(body.text) }),
+          'karaoke/words': () => ({ words: textVideoTools.createKaraokeWordTimings(body.cue, body.options || {}) }),
+          'qc': () => textVideoTools.validateCaptionTrack(body.track, body.options || {}),
+          'normalize': () => textVideoTools.normalizeCaptionTrack(body.track, body.options || {}),
+          'split': () => ({ cues: textVideoTools.splitLongCaptionCue(body.cue, body.options || {}) }),
+          'beat-markers': () => ({ markers: textVideoTools.detectBeatMarkers(body.energy, body.options || {}) }),
+          'scene-cuts': () => ({ scenes: textVideoTools.buildSceneCutsFromBeats(body.durationMs, body.markers, body.options || {}) }),
+          'batch-export': () => ({ plan: textVideoTools.buildBatchExportPlan(body) })
+        }[route];
+        if (!result) return sendJson(res, 404, { error: 'Nepoznat text-tools endpoint.' });
+        return sendJson(res, 200, { ok: true, ...result() });
+      } catch (error) {
+        return sendJson(res, error.statusCode || 400, { error: error.message || 'Text-u-video obrada nije uspela.' });
+      }
+    }
+    if (pathname === '/api/text-tools/safe-area' && req.method === 'GET') {
+      if (!requireLocal(req, res)) return;
+      return sendJson(res, 200, { ok: true, preset: textVideoTools.getSafeAreaPreset(url.searchParams.get('format') || '16:9') });
+    }
     if (pathname.startsWith('/api/audio-projects/') && pathname.endsWith('/lyrics-overlay/validate') && req.method === 'GET') {
       if (!requireLocal(req, res)) return;
       const projectId = pathname.split('/')[3];
@@ -2278,4 +2316,3 @@ module.exports = { startServer };
 if (require.main === module) {
   startServer();
 }
-
