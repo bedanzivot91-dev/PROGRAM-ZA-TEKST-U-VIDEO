@@ -184,7 +184,7 @@ async function testProvider(key) {
   const timer = setTimeout(() => controller.abort(), 8000);
   const started = Date.now();
   try {
-    const headers = { 'User-Agent': 'Muzicki-Spot-Studio/15.4' };
+    const headers = { 'User-Agent': 'Muzicki-Spot-Studio/15.6' };
     if (item.apiKey) headers.Authorization = `Bearer ${item.apiKey}`;
     const response = await fetch(target, { method: 'GET', redirect: 'follow', signal: controller.signal, headers });
     return {
@@ -204,7 +204,7 @@ async function testProvider(key) {
 function moduleStatus() {
   return {
     ok: true,
-    version: '15.4',
+    version: '15.6',
     hyperframes: hyperframesStatus(),
     sceneDetect: sceneDetectStatus(),
     providers: maskedProviders(),
