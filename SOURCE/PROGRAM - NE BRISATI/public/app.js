@@ -3316,6 +3316,134 @@ function hexToRgba(hex,alpha){const rgb=hexToRgb(hex);return`rgba(${rgb.r},${rgb
 function updateLiveCaptionMonitor(){const frame=$('#captionMonitorFrame');if(!frame)return;collectFormState();const format=state.captions.preview.format||'9:16';frame.classList.remove('format-9-16','format-16-9','format-1-1');frame.classList.add(`format-${format.replace(':','-')}`);const zones=$('#captionSafeZonesOverlay');zones.className=`caption-safe-zones platform-${state.captions.preview.showSafeZones?(state.captions.preview.safeZonePlatform||'youtube'):'none'}`;const time=getCaptionPreviewTime();const duration=getCaptionPreviewDuration();const item=captionItemAt(time)||state.captions.items[0]||{id:'demo',start:0,end:5,text:'NEDOSTAJEŠ MI VIŠE NEGO ŠTO SMEM DA KAŽEM'};const index=captionIndex(item);const tr=getTranslationForCaption(item,index);const mode=state.captions.enabled===false?'none':(state.captions.displayMode||'original');const original=$('#captionOriginalOverlay'),translation=$('#captionTranslationOverlay');let originalText=state.captions.style.uppercase?String(item.text||'').toLocaleUpperCase('sr-RS'):String(item.text||'');let translatedText=state.captions.style.uppercase?String(tr?.text||'').toLocaleUpperCase('sr-RS'):String(tr?.text||'');const local=clamp((time-(item.start||0))/Math.max(.05,(item.end||5)-(item.start||0)),0,1);if(state.captions.style.animation==='typewriter')originalText=originalText.slice(0,Math.max(1,Math.ceil(originalText.length*local)));if(['word','wordpop'].includes(state.captions.style.animation)||state.captions.style.mode==='wordpop'){const words=originalText.split(/\s+/);originalText=words.slice(0,Math.max(1,Math.ceil(words.length*local))).join(' ');}original.textContent=originalText;translation.textContent=translatedText;original.hidden=!['original','bilingual'].includes(mode);translation.hidden=!['translation','bilingual'].includes(mode)||!translatedText;styleLiveOverlay(original);styleLiveOverlay(translation,{translation:true});const title=$('#captionTitleOverlay'),cta=$('#captionCtaOverlay'),overlay=state.captions.overlays||{};title.textContent=overlay.titleText||state.songTitle||'';title.hidden=!(overlay.titleEnabled&&time<=Number(overlay.titleDuration||4));cta.textContent=overlay.ctaText||'';cta.hidden=!(overlay.ctaEnabled&&time>=Math.max(0,duration-Number(overlay.ctaDuration||5)));const seek=$('#captionPreviewSeek');if(seek&&!seek.matches(':active'))seek.value=duration?time/duration*100:0;if($('#captionPreviewTime'))$('#captionPreviewTime').textContent=`${secondsToClock(time)} / ${secondsToClock(duration)}`;if($('#captionPreviewPlayBtn'))$('#captionPreviewPlayBtn').textContent=$('#captionMonitorVideo')?.paused===false?'❚❚ Pauza':'▶ Pusti';renderCaptionReadability(item,tr);}
 function renderCaptionReadability(item,tr){const box=$('#captionReadabilityReport');if(!box)return;const duration=Math.max(.1,(item?.end||5)-(item?.start||0));const chars=String(item?.text||'').length;const cps=chars/duration;const maxWords=Math.max(...splitCaptionLines(item?.text,state.captions.style.wordsPerLine||7).map(line=>line.split(/\s+/).length),0);const hasTranslation=Boolean(tr?.text);const checks=[{label:'Brzina čitanja',value:`${cps.toFixed(1)} znakova/s`,level:cps<=17?'good':cps<=22?'warn':'bad'},{label:'Najduži red',value:`${maxWords} reči`,level:maxWords<=7?'good':maxWords<=9?'warn':'bad'},{label:'Safe zona',value:state.captions.preview.showSafeZones?'prikazana':'skrivena',level:state.captions.preview.showSafeZones?'good':'warn'},{label:'Prevod',value:hasTranslation?'spreman':'nije unet',level:state.captions.displayMode==='original'?'good':hasTranslation?'good':'bad'}];box.innerHTML=checks.map(check=>`<div class="caption-quality-item ${check.level}"><span>${check.label}</span><strong>${check.value}</strong></div>`).join('');}
 function renderCaptionFeatureChecklist(){const box=$('#captionFeatureChecklist');if(!box)return;const list=['Živi video monitor','Original / prevod / dvojezično','Safe zone za 4 platforme','Klikabilni transkript','Rečnik ispravki','Brend preset stilova','Automatsko uklapanje teksta','Animacije reč-po-reč','Naslov i CTA','Više SRT traka','Pregled 9:16 / 16:9 / 1:1','Provera čitljivosti'];box.innerHTML=list.map(item=>`<div><b>✓</b> ${item}</div>`).join('');}
+
+function captionItemsToTextToolCues(items = state.captions?.items || []) {
+  return items.map((item, index) => ({
+    cueId: item.id || `caption-${String(index + 1).padStart(4, '0')}`,
+    startMs: Math.max(0, Math.round(Number(item.start || 0) * 1000)),
+    endMs: Math.max(1, Math.round(Number(item.end || 0) * 1000)),
+    text: String(item.text || ''), enabled: true, deleted: false
+  }));
+}
+
+function textToolCuesToCaptionItems(cues = []) {
+  return cues.map((cue, index) => ({
+    id: cue.cueId || `caption-${String(index + 1).padStart(4, '0')}`,
+    start: Number(cue.startMs || 0) / 1000,
+    end: Number(cue.endMs || 0) / 1000,
+    text: String(cue.text || ''),
+    words: Array.isArray(cue.words) ? cue.words : []
+  })).filter(item => item.end > item.start && item.text.trim());
+}
+
+async function callTextVideoTool(route, payload = {}) {
+  const response = await fetch(`/api/text-tools/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Napredni tekst-u-video alat nije uspeo.');
+  return data;
+}
+
+function setTextToolsReport(message, tone = 'normal') {
+  const report = $('#textToolsReport');
+  const badge = $('#textToolsStatusBadge');
+  if (report) report.textContent = message;
+  if (badge) { badge.textContent = tone === 'error' ? 'Greška' : tone === 'good' ? 'Završeno' : 'Spremno'; badge.className = `badge ${tone === 'error' ? 'danger' : tone === 'good' ? 'success' : ''}`; }
+}
+
+function applyTextToolCues(cues, message) {
+  state.captions.items = textToolCuesToCaptionItems(cues);
+  state.captions.status = message;
+  state.captions.translation.items = [];
+  state.captions.translation.text = '';
+  persistState(false, false);
+  fillForm();
+  renderCaptions();
+  renderCaptionPreview();
+}
+
+async function importLrcIntoCaptions(file) {
+  if (!file) return;
+  try {
+    const data = await callTextVideoTool('lrc/import', { text: await file.text(), durationMs: Math.round((state.audio.duration || 0) * 1000) || null });
+    applyTextToolCues(data.cues || [], `LRC je učitan: ${data.cues?.length || 0} titlova.`);
+    setTextToolsReport(`LRC učitan. Metapodaci: ${Object.keys(data.metadata || {}).length}. Titlovi: ${data.cues?.length || 0}.`, 'good');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
+
+async function importSrtIntoTextTools(file) {
+  if (!file) return;
+  try {
+    const data = await callTextVideoTool('srt/import', { text: await file.text() });
+    applyTextToolCues(data.cues || [], `SRT je učitan: ${data.cues?.length || 0} titlova.`);
+    setTextToolsReport(`SRT učitan. Titlovi: ${data.cues?.length || 0}.`, 'good');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
+
+async function exportLrcFromTextTools() {
+  try {
+    const data = await callTextVideoTool('lrc/export', { cues: captionItemsToTextToolCues(), metadata: { ti: state.songTitle || 'lyrics-video', ar: state.artistName || '' } });
+    downloadBlob(new Blob([data.lrc || ''], { type: 'text/plain;charset=utf-8' }), `${safeFileName(state.songTitle || state.name || 'lyrics-video')}.lrc`);
+    setTextToolsReport('LRC je uspešno izvezen.', 'good');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
+
+async function qualityCheckTextTools() {
+  try {
+    const data = await callTextVideoTool('qc', { track: { cues: captionItemsToTextToolCues() }, options: { durationMs: Math.round((state.audio.duration || 0) * 1000) || null, minimumGapMs: Number($('#textToolsMinGap')?.value || 0) } });
+    setTextToolsReport(`KONTROLA TITLOVA\nValidno: ${data.valid ? 'DA' : 'NE'}\nBroj titlova: ${data.cueCount}\nGreške: ${data.errors.length}\nUpozorenja: ${data.warnings.length}\n\n${[...data.errors, ...data.warnings].map(item => `- ${item.message}`).join('\n') || 'Nema pronađenih problema.'}`, data.valid ? 'good' : 'error');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
+
+async function normalizeTextToolsCaptions() {
+  try {
+    const data = await callTextVideoTool('normalize', { track: { cues: captionItemsToTextToolCues() }, options: { durationMs: Math.round((state.audio.duration || 0) * 1000) || null } });
+    applyTextToolCues(data.cues || [], `Titlovi su sređeni: ${data.cues?.length || 0} titlova.`);
+    setTextToolsReport('Titlovi su normalizovani, sortirani i očišćeni od preklapanja.', 'good');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
+
+async function splitLongTextToolsCaptions() {
+  try {
+    const maxChars = Number($('#textToolsMaxChars')?.value || 42);
+    const result = [];
+    for (const cue of captionItemsToTextToolCues()) {
+      const data = await callTextVideoTool('split', { cue, options: { maxChars } });
+      result.push(...(data.cues || []));
+    }
+    applyTextToolCues(result, `Dugi titlovi su podeljeni: ${result.length} titlova.`);
+    setTextToolsReport(`Podela završena. Maksimum je ${maxChars} karaktera po titlu. Ukupno: ${result.length}.`, 'good');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
+
+async function showTextToolsSafeArea() {
+  try {
+    const format = $('#textToolsSafeFormat')?.value || '9:16';
+    const response = await fetch(`/api/text-tools/safe-area?format=${encodeURIComponent(format)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Safe zone nije dostupna.');
+    const p = data.preset;
+    setTextToolsReport(`SAFE ZONA ${p.format}\nDimenzije: ${p.width} × ${p.height}\nLevo: ${p.left * 100}%\nDesno: ${p.right * 100}%\nGore: ${p.top * 100}%\nDole: ${p.bottom * 100}%`, 'good');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
+
+async function buildTextToolsBeatScenes() {
+  try {
+    const durationMs = Math.round((state.audio.duration || state.scenes.at(-1)?.end || 0) * 1000);
+    const energy = Array.isArray(state.audio.energyCurve) ? state.audio.energyCurve : [];
+    if (!durationMs || !energy.length) throw new Error('Najpre dodaj i analiziraj audio da bi se napravili rezovi po beatovima.');
+    const fps = energy.length / Math.max(1, durationMs / 1000);
+    const markersData = await callTextVideoTool('beat-markers', { energy, options: { fps } });
+    const scenesData = await callTextVideoTool('scene-cuts', { durationMs, markers: markersData.markers, options: { minimumSceneMs: Math.max(1000, Number(state.sceneDuration || 5) * 1000 * .6), maximumSceneMs: Math.max(3000, Number(state.sceneDuration || 5) * 1000 * 1.8) } });
+    setTextToolsReport(`REZOVI PO BEATOVIMA\nBeat markeri: ${markersData.markers.length}\nPredložene scene: ${scenesData.scenes.length}\nTrajanje: ${(durationMs / 1000).toFixed(2)} s\n\n${scenesData.scenes.map(scene => `${scene.number}. ${scene.startMs}–${scene.endMs} ms (${scene.cutReason})`).join('\n')}`, 'good');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
+
+async function buildTextToolsBatchPlan() {
+  try {
+    const data = await callTextVideoTool('batch-export', { baseName: safeFileName(state.songTitle || state.name || 'lyrics-video'), outputDir: 'exports', formats: ['srt', 'vtt', 'lrc', 'ass', 'json'] });
+    setTextToolsReport(`PLAN IZVOZA\n${(data.plan || []).map(item => `${item.format.toUpperCase()} → ${item.outputPath}`).join('\n')}`, 'good');
+  } catch (error) { setTextToolsReport(error.message, 'error'); showToast(error.message); }
+}
 function updateCaptionItem(id, field, value) {
   const item = state.captions.items.find(entry => entry.id === id);
   if (!item) return;
@@ -6593,6 +6721,17 @@ function bindEvents() {
   $('#deleteCaptionBrandPresetBtn')?.addEventListener('click', deleteCaptionBrandPreset);
   $('#exportTranslatedSrtBtn')?.addEventListener('click', () => exportTranslatedSubtitles(false));
   $('#exportBilingualSrtBtn')?.addEventListener('click', () => exportTranslatedSubtitles(true));
+  $('#textToolsImportLrcBtn')?.addEventListener('click', () => $('#textToolsLrcFile')?.click());
+  $('#textToolsLrcFile')?.addEventListener('change', event => { importLrcIntoCaptions(event.target.files?.[0]); event.target.value = ''; });
+  $('#textToolsExportLrcBtn')?.addEventListener('click', exportLrcFromTextTools);
+  $('#textToolsImportSrtBtn')?.addEventListener('click', () => $('#textToolsSrtFile')?.click());
+  $('#textToolsSrtFile')?.addEventListener('change', event => { importSrtIntoTextTools(event.target.files?.[0]); event.target.value = ''; });
+  $('#textToolsQualityBtn')?.addEventListener('click', qualityCheckTextTools);
+  $('#textToolsNormalizeBtn')?.addEventListener('click', normalizeTextToolsCaptions);
+  $('#textToolsSplitBtn')?.addEventListener('click', splitLongTextToolsCaptions);
+  $('#textToolsSafeAreaBtn')?.addEventListener('click', showTextToolsSafeArea);
+  $('#textToolsBeatScenesBtn')?.addEventListener('click', buildTextToolsBeatScenes);
+  $('#textToolsBatchPlanBtn')?.addEventListener('click', buildTextToolsBatchPlan);
   $('#loadCaptionPreviewVideoBtn')?.addEventListener('click', () => $('#captionPreviewVideoFile').click());
   $('#captionPreviewVideoFile')?.addEventListener('change', event => { loadCaptionPreviewVideoFile(event.target.files?.[0]); event.target.value=''; });
   $('#useLastRenderPreviewBtn')?.addEventListener('click', useLastRenderForCaptionPreview);
