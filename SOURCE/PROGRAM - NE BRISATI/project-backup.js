@@ -17,6 +17,17 @@ function timestampForFileName(date = new Date()) {
   return date.toISOString().replace(/[:.]/g, '-');
 }
 
+function uniqueBackupFileName(dir) {
+  const base = `backup-${timestampForFileName()}`;
+  let fileName = `${base}.json`;
+  let suffix = 1;
+  while (fs.existsSync(path.join(dir, fileName))) {
+    fileName = `${base}-${String(suffix).padStart(2, '0')}.json`;
+    suffix += 1;
+  }
+  return fileName;
+}
+
 function pruneOldBackups(dir, maxBackups = MAX_BACKUPS_PER_PROJECT) {
   const files = fs.readdirSync(dir).filter(f => f.startsWith('backup-') && f.endsWith('.json')).sort();
   while (files.length > maxBackups) {
@@ -30,7 +41,9 @@ function pruneOldBackups(dir, maxBackups = MAX_BACKUPS_PER_PROJECT) {
 function createProjectBackup(projectDirPath, projectState, reason = 'manual') {
   const dir = backupDir(projectDirPath);
   fs.mkdirSync(dir, { recursive: true });
-  const fileName = `backup-${timestampForFileName()}.json`;
+  // Više operacija može da se desi u istoj milisekundi. Sam timestamp tada
+  // pravi isti naziv i tiho pregazi prethodni backup.
+  const fileName = uniqueBackupFileName(dir);
   const filePath = path.join(dir, fileName);
   const tmpPath = `${filePath}.tmp-${process.pid}`;
   const payload = { reason, backedUpAt: new Date().toISOString(), project: projectState };
