@@ -12,6 +12,11 @@ const os = require('os');
 const crypto = require('crypto');
 
 const SYSTEM_FONTS_DIR = 'C:\\Windows\\Fonts';
+const SYSTEM_FONTS_DIRS = process.platform === 'win32'
+  ? [SYSTEM_FONTS_DIR]
+  : process.platform === 'darwin'
+    ? ['/System/Library/Fonts', '/Library/Fonts', path.join(os.homedir(), 'Library', 'Fonts')]
+    : ['/usr/share/fonts', '/usr/local/share/fonts', path.join(os.homedir(), '.fonts'), path.join(os.homedir(), '.local', 'share', 'fonts')];
 function userFontsDir() {
   const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
   return path.join(localAppData, 'Microsoft', 'Windows', 'Fonts');
@@ -180,27 +185,37 @@ function inspectFontFile(filePath) {
 
 function scanFontDirectory(dir, source) {
   const results = [];
-  let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return results; }
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    const ext = path.extname(entry.name).toLowerCase();
-    if (!FONT_EXTENSIONS.has(ext)) continue;
-    const filePath = path.join(dir, entry.name);
-    const inspected = inspectFontFile(filePath);
-    if (!inspected) continue; // stvarno neispravan/nečitljiv fajl — tiho preskoči, ne prijavljuj kao dostupan
-    results.push({
-      fontId: crypto.createHash('sha1').update(filePath).digest('hex').slice(0, 16),
-      family: inspected.family,
-      fullName: inspected.fullName,
-      source,
-      filePath,
-      license: source === 'system' ? 'system' : 'unknown',
-      category: [],
-      supportsSerbianLatin: inspected.supportsSerbianLatin,
-      supportsCyrillic: inspected.supportsCyrillic,
-      available: true
-    });
+  const pending = [dir];
+  const visited = new Set();
+  while (pending.length) {
+    const current = pending.pop();
+    if (visited.has(current)) continue;
+    visited.add(current);
+    let entries;
+    try { entries = fs.readdirSync(current, { withFileTypes: true }); } catch { continue; }
+    for (const entry of entries) {
+      const filePath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        pending.push(filePath);
+        continue;
+      }
+      const ext = path.extname(entry.name).toLowerCase();
+      if (!FONT_EXTENSIONS.has(ext)) continue;
+      const inspected = inspectFontFile(filePath);
+      if (!inspected) continue; // stvarno neispravan/nečitljiv fajl — tiho preskoči, ne prijavljuj kao dostupan
+      results.push({
+        fontId: crypto.createHash('sha1').update(filePath).digest('hex').slice(0, 16),
+        family: inspected.family,
+        fullName: inspected.fullName,
+        source,
+        filePath,
+        license: source === 'system' ? 'system' : 'unknown',
+        category: [],
+        supportsSerbianLatin: inspected.supportsSerbianLatin,
+        supportsCyrillic: inspected.supportsCyrillic,
+        available: true
+      });
+    }
   }
   return results;
 }
@@ -208,7 +223,11 @@ function scanFontDirectory(dir, source) {
 // Glavna funkcija — STVARNO skenira fajl sistem, ne vraća hardkodiranu listu.
 function listAvailableFonts({ includeSystem = true, includeUser = true, extraDirs = [] } = {}) {
   const fonts = [];
-  if (includeSystem && fs.existsSync(SYSTEM_FONTS_DIR)) fonts.push(...scanFontDirectory(SYSTEM_FONTS_DIR, 'system'));
+  if (includeSystem) {
+    for (const dir of SYSTEM_FONTS_DIRS) {
+      if (fs.existsSync(dir)) fonts.push(...scanFontDirectory(dir, 'system'));
+    }
+  }
   if (includeUser) {
     const userDir = userFontsDir();
     if (fs.existsSync(userDir)) fonts.push(...scanFontDirectory(userDir, 'user'));
@@ -229,5 +248,5 @@ function resolveFallbackFont(availableFonts, preferredFamily = '') {
 
 module.exports = {
   listAvailableFonts, inspectFontFile, resolveFallbackFont,
-  SYSTEM_FONTS_DIR, userFontsDir, SERBIAN_LATIN_CODEPOINTS, FONT_EXTENSIONS
+  SYSTEM_FONTS_DIR, SYSTEM_FONTS_DIRS, userFontsDir, SERBIAN_LATIN_CODEPOINTS, FONT_EXTENSIONS
 };
