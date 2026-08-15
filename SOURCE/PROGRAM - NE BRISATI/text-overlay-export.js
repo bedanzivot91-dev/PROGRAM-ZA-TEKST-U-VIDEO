@@ -164,7 +164,11 @@ function assertSafeAssFileName(fileName) {
 }
 
 function buildBurnInFfmpegArgs(inputVideoPath, assFilePath, outputVideoPath) {
-  const assBaseName = path.basename(assFilePath);
+  // path.basename na POSIX-u ne prepoznaje Windows '\\' kao separator.
+  // Installer je Windows program, ali testovi i razvoj mogu da se izvršavaju
+  // na Linux/macOS hostu, zato normalizujemo oba oblika putanje pre basename-a.
+  const normalizedAssPath = String(assFilePath || '').replace(/\\/g, '/');
+  const assBaseName = path.posix.basename(normalizedAssPath);
   assertSafeAssFileName(assBaseName);
   return ['-y', '-i', path.resolve(inputVideoPath), '-vf', `ass=${assBaseName}`, '-c:a', 'copy', path.resolve(outputVideoPath)];
 }
