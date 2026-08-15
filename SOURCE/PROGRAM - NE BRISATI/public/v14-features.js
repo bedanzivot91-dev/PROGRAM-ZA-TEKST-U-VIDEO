@@ -2,12 +2,12 @@
 
 /* Muzički Spot Studio 15.4 — LITE alati. Sve funkcije rade lokalno u browseru ili preko lokalnog servera. */
 
-const MSS_VERSION = '15.4';
+const MSS_VERSION = '15.6';
 const DEFAULT_PRIVATE_GPT_URL = 'https://chatgpt.com/g/g-6a62e905ca608191be135254d6f2fbcc-muzicki-spot-studio-privatni';
 const DEFAULT_PRIVATE_GPT_ID = 'g-6a62e905ca608191be135254d6f2fbcc';
 const DEFAULT_PRIVATE_GPT_EDITOR_URL = `https://chatgpt.com/gpts/editor/${DEFAULT_PRIVATE_GPT_ID}`;
 const MAX_PLUS_PROMPT_CHARS = 24000;
-const EXPECTED_PLUS_EXTENSION_VERSION = '15.4.0';
+const EXPECTED_PLUS_EXTENSION_VERSION = '15.6.0';
 const ROUND2_BATCH_SIZE = 8;
 
 const V14 = {
@@ -1014,7 +1014,7 @@ async function pollPlusBridgeResult(showWaiting = false) {
       clearInterval(plusBridgePollTimer); plusBridgePollTimer = 0;
       state.advanced.step3.plusJobId = '';
       persistState(false, false);
-      plusBridgeSetStatus('MOST RADI. Program, browser dodatak 15.4 i tvoj otvoreni ChatGPT tab uspešno su razmenili test zahtev i odgovor.', 100, 'MOST RADI');
+    plusBridgeSetStatus('MOST RADI. Program, browser dodatak 15.6 i tvoj otvoreni ChatGPT tab uspešno su razmenili test zahtev i odgovor.', 100, 'MOST RADI');
       showToast('ChatGPT most radi.');
       return true;
     }
@@ -1083,7 +1083,7 @@ async function prepareStep3PlusBridgeRequest() {
     }
   }
   const status = await refreshPlusBridgeStatus(false);
-  if (!status?.extensionInstalled) throw new Error('Browser dodatak nije detektovan. Učitaj dodatak iz foldera verzije 15.4.');
+  if (!status?.extensionInstalled) throw new Error('Browser dodatak nije detektovan. Učitaj dodatak iz foldera verzije 15.6.');
   if (!status?.extensionCompatible) throw new Error(`Chrome koristi dodatak ${status?.extensionVersion || 'nepoznate verzije'}. Potrebna je verzija ${EXPECTED_PLUS_EXTENSION_VERSION}.`);
   const gptUrl = plusPrivateGptUrl();
   const payload = step3PackagePayload(jobSpec);
