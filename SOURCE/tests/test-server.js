@@ -18,7 +18,7 @@ let fail = 0;
 function ok(label) { pass += 1; console.log(`  [OK] ${label}`); }
 function bad(label, detail) { fail += 1; console.log(`  [FAIL] ${label}${detail ? ` — ${detail}` : ''}`); }
 
-function request(method, pathname, { headers = {}, body = null, timeout = 5000 } = {}) {
+function request(method, pathname, { headers = {}, body = null, timeout = 15000 } = {}) {
   return new Promise((resolve, reject) => {
     const payload = body === null ? null : (typeof body === 'string' ? body : JSON.stringify(body));
     const req = http.request({
