@@ -508,6 +508,31 @@
 <div class="feature-checklist" id="captionFeatureChecklist"></div>
 </div>
 </div>
+<div class="card caption-tools-card" id="textVideoToolsCard">
+<div class="section-heading inner-heading"><div><span class="step-label">NAPREDNI TEKST-U-VIDEO ALATI</span><h3>Uvoz, provera i obrada titlova</h3></div><span class="badge" id="textToolsStatusBadge">Spremno</span></div>
+<div class="notice info">Ovi alati sada rade iz glavnog programa. Ne pokreću se ručno preko servera: dugmad ispod koriste lokalni desktop program i odmah menjaju ili proveravaju trenutne titlove.</div>
+<div class="actions">
+  <button class="secondary" id="textToolsImportLrcBtn" type="button">Uvezi LRC</button>
+  <button class="secondary" id="textToolsExportLrcBtn" type="button">Izvezi LRC</button>
+  <button class="secondary" id="textToolsImportSrtBtn" type="button">Uvezi SRT</button>
+  <button class="secondary" id="textToolsQualityBtn" type="button">Proveri kvalitet</button>
+  <button class="secondary" id="textToolsNormalizeBtn" type="button">Sredi titlove</button>
+  <button class="secondary" id="textToolsSplitBtn" type="button">Podeli duge titlove</button>
+</div>
+<div class="field-grid">
+  <label>Maksimum karaktera po titlu<input id="textToolsMaxChars" type="number" min="12" max="160" value="42"/></label>
+  <label>Format safe zone<select id="textToolsSafeFormat"><option value="9:16">9:16</option><option value="16:9">16:9</option><option value="1:1">1:1</option></select></label>
+  <label>Minimalni razmak titlova (ms)<input id="textToolsMinGap" type="number" min="0" max="2000" value="0"/></label>
+</div>
+<div class="actions">
+  <button class="ghost" id="textToolsSafeAreaBtn" type="button">Prikaži safe zone</button>
+  <button class="ghost" id="textToolsBeatScenesBtn" type="button">Napravi rezove po beatovima</button>
+  <button class="ghost" id="textToolsBatchPlanBtn" type="button">Napravi plan izvoza</button>
+</div>
+<input accept=".lrc,text/plain" hidden id="textToolsLrcFile" type="file"/>
+<input accept=".srt,.vtt,text/vtt,application/x-subrip" hidden id="textToolsSrtFile" type="file"/>
+<pre class="test-report" id="textToolsReport">Izaberi radnju. Rezultat će se prikazati ovde.</pre>
+</div>
 </section>
 <section class="workspace" data-panel="media">
 <div class="section-heading"><div><span class="step-label">KORAK 8</span><h2>Slike i završni video</h2></div><span class="badge" id="renderBadge">Čeka materijal</span></div>
