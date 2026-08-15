@@ -1,7 +1,7 @@
 'use strict';
 // End-to-end test: pokreće PRAVI server.js kao dete-proces, pravi pravi HTTP zahtev za
 // kreiranje projekta, otprema STVARAN audio fajl (sintetički ton generisan FFmpeg-om,
-// tests/fixtures/test-tone.mp3, 7.35s), i proverava da trajanje koje se vrati kroz ceo
+// tests/fixtures/test-tone.mp3, 7.393s sa MP3 paddingom), i proverava da trajanje koje se vrati kroz ceo
 // HTTP round-trip odgovara ffprobe ground truth-u iz test-audio-probe.js. Ništa nije mock.
 const path = require('path');
 const os = require('os');
@@ -13,6 +13,7 @@ const ROOT = path.join(__dirname, '..');
 const PROGRAM_DIR = path.join(ROOT, 'PROGRAM - NE BRISATI');
 const SERVER_FILE = path.join(PROGRAM_DIR, 'server.js');
 const FIXTURE = path.join(__dirname, 'fixtures', 'test-tone.mp3');
+const EXPECTED_DURATION_MS = 7393;
 const PORT = 4188;
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'mss-audio-test-data-'));
 
@@ -106,8 +107,8 @@ async function main() {
     try {
       const audioBase64 = fs.readFileSync(FIXTURE).toString('base64');
       const res = await request('POST', `/api/audio-projects/${projectId}/audio`, { body: { fileName: 'test-tone.mp3', audioBase64 } });
-      if (res.status === 200 && res.json?.project?.audio?.durationMs === 7350) {
-        ok(`POST .../audio → 200, durationMs=7350 (poklapa se sa ffprobe ground truth kroz PUN HTTP round-trip)`);
+      if (res.status === 200 && res.json?.project?.audio?.durationMs === EXPECTED_DURATION_MS) {
+        ok(`POST .../audio → 200, durationMs=${EXPECTED_DURATION_MS} (poklapa se sa ffprobe ground truth kroz PUN HTTP round-trip)`);
       } else bad('POST .../audio trajanje', `status ${res.status}, durationMs=${res.json?.project?.audio?.durationMs}, body=${res.raw.slice(0, 300)}`);
       if (res.json?.project?.audio?.codec === 'mp3' && res.json?.project?.progress?.audio === 100) ok('POST .../audio → codec i progress ispravni');
       else bad('POST .../audio metapodaci', JSON.stringify(res.json?.project?.audio));
@@ -140,8 +141,8 @@ async function main() {
       // i dalje da vrati validan timeline (cela pesma kao jedna scena, bez kandidata).
       const res = await request('POST', `/api/audio-projects/${projectId}/plan-scenes`);
       const scenes = res.json?.project?.storyboard?.scenes;
-      if (res.status === 200 && Array.isArray(scenes) && scenes.length >= 1 && scenes[0].startMs === 0 && scenes[scenes.length - 1].endMs === 7350) {
-        ok(`POST .../plan-scenes (bez kandidata) → 200, validan timeline (${scenes.length} scena, 0-7350ms)`);
+      if (res.status === 200 && Array.isArray(scenes) && scenes.length >= 1 && scenes[0].startMs === 0 && scenes[scenes.length - 1].endMs === EXPECTED_DURATION_MS) {
+        ok(`POST .../plan-scenes (bez kandidata) → 200, validan timeline (${scenes.length} scena, 0-${EXPECTED_DURATION_MS}ms)`);
       } else bad('POST .../plan-scenes bez kandidata', JSON.stringify(res.json));
     } catch (error) { bad('POST .../plan-scenes bez kandidata', error.message); }
 
@@ -154,7 +155,7 @@ async function main() {
       // pa direktno proveravamo da plan-scenes I DALJE radi (bez padanja) i kada lyrics postoje ali NISU poravnati.
       const res = await request('POST', `/api/audio-projects/${projectId}/plan-scenes`, { body: { editingIntensity: 'dynamic', minimumSceneDuration: 500 } });
       const scenes = res.json?.project?.storyboard?.scenes;
-      if (res.status === 200 && Array.isArray(scenes) && scenes[scenes.length - 1].endMs === 7350) {
+      if (res.status === 200 && Array.isArray(scenes) && scenes[scenes.length - 1].endMs === EXPECTED_DURATION_MS) {
         ok('POST .../plan-scenes sa unetim (ali nepravanatim) tekstom i custom podešavanjima → 200, i dalje validan timeline');
       } else bad('POST .../plan-scenes sa tekstom', JSON.stringify(res.json));
     } catch (error) { bad('POST .../plan-scenes sa tekstom', error.message); }
