@@ -1,7 +1,9 @@
 'use strict';
 // Testira audio-probe.js sa STVARNIM audio fajlovima generisanim preko FFmpeg (sintetički ton,
 // bez autorskih prava) i stvarnim oštećenim/nevažećim fajlovima. Ništa se ne simulira —
-// svaki fajl se stvarno propušta kroz pravi FFprobe proces.
+// svaki fajl se stvarno propušta kroz pravi FFprobe proces. MP3 encoder padding
+// je deo kontejnerskog trajanja, zato je stvarna vrednost ovog fixture-a 7393ms,
+// a ne nominalnih 7350ms tona.
 const path = require('path');
 const { probeAudioFile } = require('../PROGRAM - NE BRISATI/audio-probe');
 
@@ -16,8 +18,8 @@ async function main() {
 
   try {
     const result = await probeAudioFile(path.join(FIXTURES, 'test-tone.mp3'));
-    if (result.durationMs === 7350) ok(`test-tone.mp3 — tacno trajanje 7350ms (poklapa se sa ffprobe ground truth)`);
-    else bad('test-tone.mp3 trajanje', `ocekivano 7350, dobijeno ${result.durationMs}`);
+    if (result.durationMs === 7393) ok(`test-tone.mp3 — tacno trajanje 7393ms (poklapa se sa ffprobe ground truth)`);
+    else bad('test-tone.mp3 trajanje', `ocekivano 7393, dobijeno ${result.durationMs}`);
     if (result.codec === 'mp3' && result.sampleRate === 44100 && result.channels === 1) ok('test-tone.mp3 — codec/sampleRate/channels tacni');
     else bad('test-tone.mp3 metapodaci', JSON.stringify(result));
   } catch (error) { bad('test-tone.mp3 probe', error.message); }
