@@ -40,10 +40,10 @@ const preload = fs.readFileSync(path.join(ROOT, 'desktop/preload.js'), 'utf8');
 if (preload.includes('contextBridge.exposeInMainWorld')) ok('preload → contextBridge API je registrovan');
 else bad('preload API', 'contextBridge API nije pronađen');
 
-const electronExecutable = process.platform === 'win32'
-  ? path.join(ROOT, 'node_modules', 'electron', 'dist', 'electron.exe')
-  : path.join(ROOT, 'node_modules', '.bin', 'electron');
-const electronCheck = spawnSync(electronExecutable, ['--version'], { encoding: 'utf8', shell: process.platform === 'win32' });
+const electronCommand = path.join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');
+const electronCheck = process.platform === 'win32'
+  ? spawnSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', `"${electronCommand}" --version`], { encoding: 'utf8' })
+  : spawnSync(electronCommand, ['--version'], { encoding: 'utf8' });
 if (electronCheck.status === 0) ok(`Electron runtime radi (${(electronCheck.stdout || '').trim()})`);
 else bad('Electron runtime', (electronCheck.stderr || electronCheck.stdout || 'nepoznata greška').trim().slice(0, 240));
 
