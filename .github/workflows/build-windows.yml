@@ -30,6 +30,14 @@ jobs:
           cache: npm
           cache-dependency-path: SOURCE/package-lock.json
 
+      - name: Install FFmpeg
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          choco install ffmpeg -y --no-progress
+          ffmpeg -version
+          ffprobe -version
+
       - name: Install dependencies
         run: npm ci
 
