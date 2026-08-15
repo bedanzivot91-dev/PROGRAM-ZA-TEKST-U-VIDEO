@@ -81,8 +81,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "POPUNI-GITHUB-KORISNICKO-IME",
-        "repo": "POPUNI-NAZIV-REPOZITORIJUMA"
+        "owner": "bedanzivot91-dev",
+        "repo": "PROGRAM-ZA-TEKST-U-VIDEO"
       }
     ],
     "files": [
