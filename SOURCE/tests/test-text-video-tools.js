@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const tools = require(path.join(__dirname, '..', 'PROGRAM - NE BRISATI', 'text-video-tools'));
 const serverSource = fs.readFileSync(path.join(__dirname, '..', 'PROGRAM - NE BRISATI', 'server.js'), 'utf8');
+const indexSource = fs.readFileSync(path.join(__dirname, '..', 'PROGRAM - NE BRISATI', 'public', 'index.html'), 'utf8');
+const appSource = fs.readFileSync(path.join(__dirname, '..', 'PROGRAM - NE BRISATI', 'public', 'app.js'), 'utf8');
 
 const lrc = tools.parseLrc('[ar:Test izvođač]\n[00:01.20]Prvi stih\n[00:03.50][00:04.00]Drugi stih', { durationMs: 8000 });
 assert.strictEqual(lrc.metadata.ar, 'Test izvođač');
@@ -45,6 +47,17 @@ assert.strictEqual(scenes[scenes.length - 1].endMs, 10000);
 const plan = tools.buildBatchExportPlan({ baseName: 'spot', outputDir: 'izvoz', formats: ['SRT', 'vtt', 'srt', 'nepodržano'] });
 assert.deepStrictEqual(plan.map(item => item.format), ['srt', 'vtt']);
 assert.strictEqual(plan[0].outputPath, 'izvoz/spot.srt');
+
+for (const id of [
+  'textVideoToolsCard', 'textToolsImportLrcBtn', 'textToolsExportLrcBtn', 'textToolsImportSrtBtn',
+  'textToolsQualityBtn', 'textToolsNormalizeBtn', 'textToolsSplitBtn', 'textToolsSafeAreaBtn',
+  'textToolsBeatScenesBtn', 'textToolsBatchPlanBtn', 'textToolsReport'
+]) assert.ok(indexSource.includes(`id="${id}"`), `Nedostaje UI kontrola: ${id}`);
+for (const fn of [
+  'importLrcIntoCaptions', 'exportLrcFromTextTools', 'qualityCheckTextTools',
+  'normalizeTextToolsCaptions', 'splitLongTextToolsCaptions', 'showTextToolsSafeArea',
+  'buildTextToolsBeatScenes', 'buildTextToolsBatchPlan'
+]) assert.ok(appSource.includes(`function ${fn}`), `Nedostaje UI funkcija: ${fn}`);
 
 assert.ok(serverSource.includes("pathname === '/api/text-tools/features'"));
 assert.ok(serverSource.includes("pathname.startsWith('/api/text-tools/')"));
