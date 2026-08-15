@@ -56,10 +56,10 @@
     "test:overlay-api": "node tests/test-lyrics-overlay-api.js",
     "test:text-video-tools": "node tests/test-text-video-tools.js",
     "test:bridge-prompts": "node tests/test-bridge-prompts.js",
-    "pack:win": "electron-builder --win --dir",
-    "dist:win": "electron-builder --win nsis",
-    "dist:portable": "electron-builder --win portable",
-    "dist:all": "electron-builder --win nsis portable",
+    "pack:win": "electron-builder --win --dir --publish never",
+    "dist:win": "electron-builder --win nsis --publish never",
+    "dist:portable": "electron-builder --win portable --publish never",
+    "dist:all": "electron-builder --win nsis portable --publish never",
     "dist:publish": "electron-builder --win nsis --publish always"
   },
   "dependencies": {
