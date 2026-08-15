@@ -1,7 +1,7 @@
 PROGRAM ZA TEKST U VIDEO v15.6.0
 
 INSTALLER/Muzicki-Spot-Studio-Free-Setup-v15.6.0.exe
-7ddb14b3f2caff222d77a46ba0cfa735a4a6599b63b5ed05fbe22dfd964
+7ddb14b3f2caff222d77a46ba0cfa735a4a6599b63b5ed05fbe22df689dfd964
 
 PORTABLE/Muzicki-Spot-Studio-Free-Portable-v15.6.0.exe
 5a01b1aeb66c5b32f959c8d11ff90eeb5a79aa3f9176dbca207ddb0e6d1d1696
