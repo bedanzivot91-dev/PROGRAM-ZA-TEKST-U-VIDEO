@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
-    "test": "npm run test:static && npm run test:server && npm run test:lyrics && npm run test:alignment && npm run test:audio-probe && npm run test:audio-projects && npm run test:stems && npm run test:transcription && npm run test:auto-lyrics && npm run test:lyrics-source && npm run test:bpm && npm run test:music-analysis && npm run test:timeline && npm run test:scene-planner && npm run test:scene-candidates && npm run test:identity && npm run test:tattoo && npm run test:image-provider && npm run test:locations && npm run test:wardrobe && npm run test:hooks && npm run test:visual-diversity && npm run test:extension-identity && npm run test:cors && npm run test:extension-stabilizer && npm run test:bridge-errors && npm run test:batch-queue && npm run test:ai-validator && npm run test:identity-sync && npm run test:project-status && npm run test:project-backup && npm run test:project-export && npm run test:text-overlay-models && npm run test:font-manager && npm run test:line-breaker && npm run test:text-layout && npm run test:smart-placement && npm run test:karaoke && npm run test:text-animation && npm run test:style-presets && npm run test:overlay-export && npm run test:overlay-storage && npm run test:overlay-api && npm run test:bridge-prompts",
+    "test": "npm run test:static && npm run test:server && npm run test:lyrics && npm run test:alignment && npm run test:audio-probe && npm run test:audio-projects && npm run test:stems && npm run test:transcription && npm run test:auto-lyrics && npm run test:lyrics-source && npm run test:bpm && npm run test:music-analysis && npm run test:timeline && npm run test:scene-planner && npm run test:scene-candidates && npm run test:identity && npm run test:tattoo && npm run test:image-provider && npm run test:locations && npm run test:wardrobe && npm run test:hooks && npm run test:visual-diversity && npm run test:extension-identity && npm run test:cors && npm run test:extension-stabilizer && npm run test:bridge-errors && npm run test:batch-queue && npm run test:ai-validator && npm run test:identity-sync && npm run test:project-status && npm run test:project-backup && npm run test:project-export && npm run test:text-overlay-models && npm run test:font-manager && npm run test:line-breaker && npm run test:text-layout && npm run test:smart-placement && npm run test:karaoke && npm run test:text-animation && npm run test:style-presets && npm run test:overlay-export && npm run test:overlay-storage && npm run test:overlay-api && npm run test:text-video-tools && npm run test:bridge-prompts",
     "test:static": "node tests/test-static.js",
     "test:server": "node tests/test-server.js",
     "test:electron": "node tests/test-electron.js",
@@ -54,6 +54,7 @@
     "test:overlay-export": "node tests/test-text-overlay-export.js",
     "test:overlay-storage": "node tests/test-lyrics-overlay-storage.js",
     "test:overlay-api": "node tests/test-lyrics-overlay-api.js",
+    "test:text-video-tools": "node tests/test-text-video-tools.js",
     "test:bridge-prompts": "node tests/test-bridge-prompts.js",
     "pack:win": "electron-builder --win --dir",
     "dist:win": "electron-builder --win nsis",
