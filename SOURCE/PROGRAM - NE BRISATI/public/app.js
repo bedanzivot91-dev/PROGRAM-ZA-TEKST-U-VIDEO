@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 119105)
-Total output lines: 6888
-
 'use strict';
 
 const $ = (selector, root = document) => root.querySelector(selector);
