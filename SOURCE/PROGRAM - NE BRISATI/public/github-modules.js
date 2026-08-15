@@ -1,7 +1,7 @@
 'use strict';
 
 (function () {
-  const MODULE_VERSION = '15.4';
+  const MODULE_VERSION = '15.6';
   const byId = id => document.getElementById(id);
   const text = value => String(value ?? '').trim();
   const clampNumber = (value, min, max) => Math.max(min, Math.min(max, Number(value) || 0));
