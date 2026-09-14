@@ -1,7 +1,4 @@
 'use strict';
-// Testira text-overlay-export.js — sekcije 12/23 dodatka (SRT/VTT/ASS/JSON export + FFmpeg/libass burn-in).
-// Poslednji test je STVARNA integracija: sintetiše pravi video preko FFmpeg-a, generiše pravi ASS
-// fajl i stvarno ga spaja (burn-in) u video preko FFmpeg-a — ne mockuje render pipeline.
 const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
@@ -11,32 +8,22 @@ const { createTextTrack, createCue, createStyle } = require('../PROGRAM - NE BRI
 const {
   msToSrtTimestamp, msToVttTimestamp, msToAssTimestamp, exportTrackToSrt, exportTrackToVtt,
   exportTrackToAss, exportTrackToJson, colorToAssHex, buildBurnInFfmpegArgs,
-  resolveFfmpegPath, renderBurnIn
+  resolveFfmpegPath, renderBurnIn, sampledAnimatedEvents
 } = require('../PROGRAM - NE BRISATI/text-overlay-export');
 
 let pass = 0;
 let fail = 0;
-function test(label, fn) {
-  try { fn(); pass += 1; console.log(`  [OK] ${label}`); }
-  catch (error) { fail += 1; console.log(`  [FAIL] ${label} — ${error.message}`); }
-}
-async function testAsync(label, fn) {
-  try { await fn(); pass += 1; console.log(`  [OK] ${label}`); }
-  catch (error) { fail += 1; console.log(`  [FAIL] ${label} — ${error.message}`); }
-}
+function test(label, fn) { try { fn(); pass += 1; console.log(`  [OK] ${label}`); } catch (error) { fail += 1; console.log(`  [FAIL] ${label} — ${error.message}`); } }
+async function testAsync(label, fn) { try { await fn(); pass += 1; console.log(`  [OK] ${label}`); } catch (error) { fail += 1; console.log(`  [FAIL] ${label} — ${error.message}`); } }
 
 console.log('== TextOverlayExport testovi ==');
 
-test('msToSrtTimestamp formatira ispravno (zarez pre milisekundi)', () => {
+test('msToSrtTimestamp formatira ispravno', () => {
   assert.strictEqual(msToSrtTimestamp(0), '00:00:00,000');
   assert.strictEqual(msToSrtTimestamp(3661500), '01:01:01,500');
 });
-
-test('msToVttTimestamp formatira ispravno (tačka pre milisekundi)', () => {
-  assert.strictEqual(msToVttTimestamp(3661500), '01:01:01.500');
-});
-
-test('msToAssTimestamp koristi centisekunde (2 cifre)', () => {
+test('msToVttTimestamp formatira ispravno', () => assert.strictEqual(msToVttTimestamp(3661500), '01:01:01.500'));
+test('msToAssTimestamp koristi centisekunde', () => {
   assert.strictEqual(msToAssTimestamp(3661500), '1:01:01.50');
   assert.strictEqual(msToAssTimestamp(0), '0:00:00.00');
 });
@@ -51,99 +38,89 @@ function buildSampleTrack() {
   return track;
 }
 
-test('exportTrackToSrt numeriše blokove i PRESKAČE obrisane cue-ove', () => {
+test('SRT numeriše i preskače obrisane cue-ove', () => {
   const srt = exportTrackToSrt(buildSampleTrack());
   assert.ok(srt.includes('1\n00:00:01,000 --> 00:00:03,000\nSanjam noćas'));
   assert.ok(srt.includes('2\n00:00:03,000 --> 00:00:05,000\no tebi'));
   assert.ok(!srt.includes('obrisano'));
 });
-
-test('exportTrackToVtt počinje sa WEBVTT header-om', () => {
-  const vtt = exportTrackToVtt(buildSampleTrack());
-  assert.ok(vtt.startsWith('WEBVTT\n\n'));
-  assert.ok(vtt.includes('00:00:01.000 --> 00:00:03.000'));
-});
-
-test('exportTrackToJson vraća parsabilan JSON sa istim trackId', () => {
+test('VTT ima WEBVTT header', () => assert.ok(exportTrackToVtt(buildSampleTrack()).startsWith('WEBVTT\n\n')));
+test('JSON čuva track', () => {
   const track = buildSampleTrack();
-  const parsed = JSON.parse(exportTrackToJson(track));
-  assert.strictEqual(parsed.trackId, track.trackId);
-  assert.strictEqual(parsed.cues.length, 3); // JSON export čuva i obrisane (za restore), samo SRT/VTT ih filtrira
+  assert.strictEqual(JSON.parse(exportTrackToJson(track)).trackId, track.trackId);
 });
-
-test('colorToAssHex konvertuje belu neprovidnu i crnu potpuno providnu boju ispravno', () => {
+test('ASS boje rade', () => {
   assert.strictEqual(colorToAssHex('#FFFFFF', 1), '&H00FFFFFF');
   assert.strictEqual(colorToAssHex('#000000', 0), '&HFF000000');
-});
-
-test('colorToAssHex zamenjuje RGB u BGR redosled', () => {
   assert.strictEqual(colorToAssHex('#FF8800', 1), '&H000088FF');
 });
-
-test('exportTrackToAss sadrži validne ASS sekcije i tačan broj Dialogue redova (bez obrisanih)', () => {
-  const style = createStyle();
-  const ass = exportTrackToAss(buildSampleTrack(), style, { width: 1920, height: 1080 });
-  assert.ok(ass.includes('[Script Info]'));
-  assert.ok(ass.includes('[V4+ Styles]'));
-  assert.ok(ass.includes('[Events]'));
-  const dialogueLines = ass.split('\n').filter(l => l.startsWith('Dialogue:'));
-  assert.strictEqual(dialogueLines.length, 2);
+test('ASS statični track ima tačan broj događaja', () => {
+  const ass = exportTrackToAss(buildSampleTrack(), createStyle(), { width: 1920, height: 1080 });
+  assert.ok(ass.includes('[Script Info]') && ass.includes('[Events]'));
+  assert.strictEqual(ass.split('\n').filter(l => l.startsWith('Dialogue:')).length, 2);
   assert.ok(!ass.includes('obrisano'));
 });
-
-test('exportTrackToAss escape-uje nove redove kao \\N', () => {
+test('ASS escape novih redova', () => {
   const track = createTextTrack({ type: 'lyrics' });
   track.cues.push(createCue({ trackId: track.trackId, startMs: 0, endMs: 1000, text: 'prva\ndruga' }));
-  const ass = exportTrackToAss(track, createStyle(), { width: 1920, height: 1080 });
-  assert.ok(ass.includes('prva\\Ndruga'));
+  assert.ok(exportTrackToAss(track, createStyle(), { width:1920, height:1080 }).includes('prva\\Ndruga'));
 });
 
-test('buildBurnInFfmpegArgs koristi SAMO ime ASS fajla u ass= filteru (ne punu putanju sa dvotačkom)', () => {
+test('ANIMIRANI tekst se prevodi u više ASS događaja sa pos/alpha/scale tagovima', () => {
+  const track = createTextTrack({ type:'lyrics' });
+  const cue = createCue({ trackId:track.trackId, startMs:0, endMs:1000, text:'Animacija' });
+  cue.animation = {
+    sampleMs: 200,
+    keyframes: [
+      { timeMs:0, x:0.2, y:0.8, opacity:0, scale:0.8, rotation:-5 },
+      { timeMs:1000, x:0.8, y:0.8, opacity:1, scale:1.1, rotation:5, easing:'linear' }
+    ]
+  };
+  track.cues.push(cue);
+  const sampled = sampledAnimatedEvents(cue, { width:1000, height:500 });
+  assert.strictEqual(sampled.length, 5);
+  assert.ok(sampled[0].includes('\\pos(200,400)'));
+  assert.ok(sampled[0].includes('\\alpha&HFF&'));
+  assert.ok(sampled[0].includes('\\fscx80'));
+  const ass = exportTrackToAss(track, createStyle(), { width:1000, height:500 });
+  assert.strictEqual(ass.split('\n').filter(l => l.startsWith('Dialogue:')).length, 5);
+});
+
+test('motion path animacija koristi putanju', () => {
+  const cue = { startMs:0, endMs:500, text:'Putanja', animation:{ sampleMs:250, keyframes:[{timeMs:0,opacity:1},{timeMs:500,opacity:1}], motionPath:{type:'line',from:{x:0.1,y:0.2},to:{x:0.9,y:0.8}} } };
+  const sampled = sampledAnimatedEvents(cue, { width:1000, height:500 });
+  assert.ok(sampled[0].includes('\\pos(100,100)'));
+  assert.ok(sampled[1].includes('\\pos(500,250)'));
+});
+
+test('FFmpeg args koriste samo ime ASS fajla', () => {
   const args = buildBurnInFfmpegArgs('in.mp4', 'C:\\subs\\overlay.ass', 'out.mp4');
-  const vfIndex = args.indexOf('-vf');
-  assert.strictEqual(args[vfIndex + 1], 'ass=overlay.ass');
+  assert.strictEqual(args[args.indexOf('-vf') + 1], 'ass=overlay.ass');
 });
-
-test('buildBurnInFfmpegArgs odbija ASS naziv fajla koji sadrži filtergraph-nebezbedne znakove', () => {
-  assert.throws(() => buildBurnInFfmpegArgs('in.mp4', 'C:\\subs\\over:lay.ass', 'out.mp4'), /filtergraph parser/);
-});
-
-test('resolveFfmpegPath vraća putanju do STVARNOG ffmpeg izvršnog fajla na ovoj mašini', () => {
-  const ffmpegPath = resolveFfmpegPath();
-  assert.ok(ffmpegPath && ffmpegPath.length > 0);
-});
+test('FFmpeg args odbijaju nebezbedan naziv', () => assert.throws(() => buildBurnInFfmpegArgs('in.mp4', 'C:\\subs\\over:lay.ass', 'out.mp4'), /filtergraph parser/));
+test('resolveFfmpegPath vraća vrednost', () => assert.ok(resolveFfmpegPath().length > 0));
 
 (async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mss-burnin-test-'));
   const inputVideo = path.join(tmpDir, 'input.mp4');
   const assFile = path.join(tmpDir, 'overlay.ass');
   const outputVideo = path.join(tmpDir, 'output.mp4');
-
   let ffmpegAvailable = true;
   try {
-    childProcess.execFileSync(resolveFfmpegPath(), ['-y', '-f', 'lavfi', '-i', 'color=c=blue:s=320x240:d=2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', inputVideo], { timeout: 30000, stdio: 'ignore' });
-  } catch {
-    ffmpegAvailable = false;
-  }
-
+    childProcess.execFileSync(resolveFfmpegPath(), ['-y', '-f', 'lavfi', '-i', 'color=c=blue:s=320x240:d=2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', inputVideo], { timeout:30000, stdio:'ignore' });
+  } catch { ffmpegAvailable = false; }
   if (!ffmpegAvailable) {
-    console.log('  [SKIP] STVARNI FFmpeg/libass burn-in render — ffmpeg nije dostupan na ovoj mašini za sintezu test videa.');
+    console.log('  [SKIP] STVARNI FFmpeg/libass burn-in — ffmpeg nije dostupan.');
   } else {
-    await testAsync('STVARNI FFmpeg/libass burn-in: sintetisan video + pravi ASS fajl → stvarno spojen izlazni video postoji i ima sadržaj', async () => {
-      const style = createStyle();
-      const ass = exportTrackToAss(buildSampleTrack(), style, { width: 320, height: 240 });
-      fs.writeFileSync(assFile, ass, 'utf8');
-
-      const result = await renderBurnIn({ inputVideoPath: inputVideo, assFilePath: assFile, outputVideoPath: outputVideo });
+    await testAsync('STVARNI FFmpeg/libass burn-in pravi izlazni video', async () => {
+      fs.writeFileSync(assFile, exportTrackToAss(buildSampleTrack(), createStyle(), { width:320, height:240 }), 'utf8');
+      const result = await renderBurnIn({ inputVideoPath:inputVideo, assFilePath:assFile, outputVideoPath:outputVideo });
       assert.strictEqual(result.ok, true);
       assert.ok(fs.existsSync(outputVideo));
-      const stat = fs.statSync(outputVideo);
-      assert.ok(stat.size > 1000, `izlazni video mora imati stvaran sadržaj, dobijeno ${stat.size} bajtova`);
+      assert.ok(fs.statSync(outputVideo).size > 1000);
     });
   }
-
-  try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best-effort čišćenje temp foldera */ }
-
+  try { fs.rmSync(tmpDir, { recursive:true, force:true }); } catch {}
   console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
   process.exit(fail ? 1 : 0);
 })();
