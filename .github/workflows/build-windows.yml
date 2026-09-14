@@ -2,7 +2,9 @@ name: Build Windows installer
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - chatgpt/fix-v15.6-incomplete-features
     paths:
       - "SOURCE/**"
       - "INSTALIRAJ-PROGRAM.bat"
@@ -45,8 +47,9 @@ jobs:
         shell: pwsh
         run: |
           node --check "PROGRAM - NE BRISATI/public/app.js"
+          node --check "PROGRAM - NE BRISATI/public/completion-ui.js"
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "Node syntax check failed for app.js"
+            Write-Host "Node syntax check failed"
             exit $LASTEXITCODE
           }
 
