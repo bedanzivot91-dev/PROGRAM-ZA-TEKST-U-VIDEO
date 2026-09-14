@@ -68,6 +68,25 @@ jobs:
       - name: Build NSIS and portable EXE
         run: npm run dist:all
 
+      - name: Silent NSIS install and uninstall smoke test
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem -Path dist -Filter "Muzicki-Spot-Studio-Free-Setup-v*.exe" | Select-Object -First 1
+          if (-not $setup) { throw "NSIS setup EXE nije pronađen." }
+          $installDir = Join-Path $env:RUNNER_TEMP "MSS-Installed"
+          if (Test-Path $installDir) { Remove-Item $installDir -Recurse -Force }
+          $proc = Start-Process -FilePath $setup.FullName -ArgumentList "/S", "/D=$installDir" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "NSIS silent install nije uspeo. ExitCode=$($proc.ExitCode)" }
+          if (-not (Test-Path $installDir)) { throw "Install folder nije napravljen." }
+          $installedExe = Get-ChildItem -Path $installDir -Filter "*.exe" -File | Where-Object { $_.Name -notmatch "(?i)unins|uninstall" } | Select-Object -First 1
+          if (-not $installedExe) { throw "Instalirana aplikacija EXE nije pronađena." }
+          $uninstaller = Get-ChildItem -Path $installDir -Filter "*.exe" -File | Where-Object { $_.Name -match "(?i)unins|uninstall" } | Select-Object -First 1
+          if (-not $uninstaller) { throw "Uninstaller nije pronađen." }
+          $unproc = Start-Process -FilePath $uninstaller.FullName -ArgumentList "/S" -Wait -PassThru
+          if ($unproc.ExitCode -ne 0) { throw "NSIS silent uninstall nije uspeo. ExitCode=$($unproc.ExitCode)" }
+          Start-Sleep -Seconds 2
+          if (Test-Path $installedExe.FullName) { throw "Aplikacioni EXE je ostao posle uninstall-a." }
+
       - name: Upload Windows installers
         uses: actions/upload-artifact@v4
         with:
