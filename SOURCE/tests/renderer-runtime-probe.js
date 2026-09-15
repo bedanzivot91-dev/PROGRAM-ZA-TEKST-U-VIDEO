@@ -69,6 +69,7 @@ async function cleanup(code) {
   }
   try { fs.rmSync(temp, { recursive:true, force:true }); } catch (_) {}
   console.log(`[EXIT] renderer probe code=${code}`);
+  process.exitCode = code;
   app.exit(code);
 }
 
@@ -116,11 +117,18 @@ async function run() {
     if (level >= 3 || /uncaught|referenceerror|typeerror|syntaxerror|nije učitan|preload/i.test(text)) hardErrors.push(`console[${level}] ${text} (${sourceId || ''}:${line || 0})`);
   });
 
+  // Chromium Profiler ume da visi ako se uključi odmah nakon kreiranja praznog
+  // BrowserWindow-a, pre nego što renderer target ima učitan dokument. Prvo učitavamo
+  // about:blank, tek onda vezujemo DevTools protokol, pa potom učitavamo stvarni Studio.
+  mark('prime renderer target');
+  await timeout(win.loadURL('about:blank'), 10000, 'BrowserWindow.loadURL about:blank');
+  await timeout(win.webContents.executeJavaScript('document.readyState', true), 3000, 'about:blank readyState');
+
   mark('attach Chromium Profiler');
   try {
     win.webContents.debugger.attach('1.3');
-    await timeout(win.webContents.debugger.sendCommand('Profiler.enable'), 5000, 'Profiler.enable');
-    await timeout(win.webContents.debugger.sendCommand('Profiler.startPreciseCoverage', { callCount:true, detailed:true }), 5000, 'Profiler.startPreciseCoverage');
+    await timeout(win.webContents.debugger.sendCommand('Profiler.enable'), 8000, 'Profiler.enable');
+    await timeout(win.webContents.debugger.sendCommand('Profiler.startPreciseCoverage', { callCount:true, detailed:true }), 8000, 'Profiler.startPreciseCoverage');
   } catch (error) { fail(`Chromium Profiler nije mogao da se uključi: ${error.message}`); }
 
   mark('loadURL');
