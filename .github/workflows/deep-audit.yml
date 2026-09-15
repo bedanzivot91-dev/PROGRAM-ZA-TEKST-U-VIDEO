@@ -97,7 +97,7 @@ jobs:
         shell: pwsh
         run: |
           git diff --exit-code -- "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
-          node scripts/sync-runtime-versions.js --check
+          node SOURCE/scripts/sync-runtime-versions.js --check
 
       - name: Deep static and structural audit
         id: deep_audit
