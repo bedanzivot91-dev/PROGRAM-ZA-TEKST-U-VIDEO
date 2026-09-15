@@ -1,7 +1,11 @@
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
-const { version: APP_VERSION } = require('../package.json');
+
+// Ovu vrednost automatski održava scripts/sync-runtime-versions.js prema package.json.
+// Sandboxed Electron preload ne sme da require()-uje proizvoljne lokalne fajlove kao
+// ../package.json, jer to može sprečiti učitavanje celog contextBridge mosta.
+const APP_VERSION = '15.6.1';
 
 // Namerno minimalan API. Frontend i dalje razgovara sa lokalnim serverom preko
 // običnog fetch() na isti-origin /api/* rute — Electron ne posreduje u tim pozivima.
@@ -9,6 +13,6 @@ const { version: APP_VERSION } = require('../package.json');
 contextBridge.exposeInMainWorld('mssDesktop', {
   isElectron: true,
   platform: process.platform,
-  appVersion: process.env.MSS_APP_VERSION || APP_VERSION,
+  appVersion: APP_VERSION,
   getDiagnostics: () => ipcRenderer.invoke('mss:get-diagnostics')
 });
