@@ -27,12 +27,12 @@ dbb16c988a396cf0f148cbe0a7cb6ad29304a89f958bb7b1e95e9172d7be39ab  docs/TROUBLESH
 b160a8f887510cef98b8edcdf323ffd889c7bd695da2d348ed8afd7944b71a84  KOMPLETAN-ZAKLJUCANI-ID-DEVOJKE-v15.3.txt
 e842b554e9c76643964bd0a5e8550aaef8d6e8ef1181558aa839b8cd78fa6130  NOVA-MODERNA-EDITORIAL-TEMA-v15.3.txt
 f2c7957943f3d4a7706eb919913c211386cd6ccc5d4bd8491d5e1b77547fc2e0  package-lock.json
-de062c8906b85b81800b8255f35a5852259b75d7776e7df0673b9e8da04b7ef2  package.json
+48bfb509c45a24172b61623e1bc0ed2d45ddfad0d9ef86499d914af985537c9e  package.json
 5dee448b897f815ac15ac4ec3f21f9ec99994598271759f20f7e91bfd3d52d03  POKRENI MUZICKI SPOT STUDIO.cmd
 0db6d54cce0537e7b95b333a612e20c9a9a1ebb6f4ccde227c96e92b5cfe622e  PROGRAM - NE BRISATI/advanced-tools.js
 e73d234ed470a90dc31cd5a43ec38ebe91917c8ba1afcb54206189f2d74346f1  PROGRAM - NE BRISATI/ai-response-validator.js
 b26e7910e8c23ee682fb7cc007714fec1e38bd45ac19ce2a3e8717cc9dc9bd97  PROGRAM - NE BRISATI/audio-probe.js
-b9791315787b0ee369e08de59f426f775b44508820cd65bbc4e66ae7e7101f8f  PROGRAM - NE BRISATI/audio-projects.js
+916f8c10a97d8ea6e02e3150218397b5ac60d64d84dd7cb248f3d725b260364b  PROGRAM - NE BRISATI/audio-projects.js
 2ddfa1cd352197305a5d0d9bf705a8371269e85a46b8201f24f046be08e811b1  PROGRAM - NE BRISATI/auto-lyrics.js
 541de059513f017afc175740bb234038976a330c5044024b118f7479f37f2cad  PROGRAM - NE BRISATI/background-worker.js
 1e6045e6a54cb42751c74477e78234b2ec97ab24b7021d67e924fa8dfdeaae38  PROGRAM - NE BRISATI/bootstrap-node.cmd
@@ -71,12 +71,12 @@ b5c5da8b6847983547a5b8304f53d7f63bbd57cceb717517c38bb6db530fb3d2  PROGRAM - NE B
 4f8679b6d8683c3ced95ba2ef7711d78b09e7771cf0ec407e2dd48e5fec8f5af  PROGRAM - NE BRISATI/launcher.js
 ad34de2c63a82216c79285b791aef4ebed67568de939b0c4aabb378abf6fbe32  PROGRAM - NE BRISATI/location-registry.js
 abcfcd49ed4dbef7c8d6c8550a35de4073c7a3cb0acf3011b2e264c9b6167c49  PROGRAM - NE BRISATI/locked-identity-text.js
-da05a0f87e8905818ce9af4528a8da24b41f21bfc92a69690c91588cbc1f46f8  PROGRAM - NE BRISATI/lyrics-alignment.js
+07a082738ea4dee939dc94df580ef6fab0b5d107538278ace539322dda8945af  PROGRAM - NE BRISATI/lyrics-alignment.js
 0ec6bdd6f469288eda3d6f8938528fe9bc72096c16b9fa2d6649b69657750a9f  PROGRAM - NE BRISATI/lyrics-line-breaker.js
 eddc679b75c460325ca6a8ea0292fe96e63d8ad2e40584578e7abc7e07a9dd17  PROGRAM - NE BRISATI/lyrics-overlay-storage.js
-b13a2d5645c862b2ef8b85c15372defacea42ea1f441e15ce0aa96e52d3f3145  PROGRAM - NE BRISATI/lyrics-parser.js
+e08d2dcd1194aa44f07c334beaec8956ac70e5a85d978e1496988d76078006c5  PROGRAM - NE BRISATI/lyrics-parser.js
 248c6b4620593c1eafb9cd807c1308ed8dcfecf93d36118eec815c28a6e55f43  PROGRAM - NE BRISATI/music-analysis.js
-b7209020e196a1bde9b2baad15126bb277cb4cc4c3eaf3d176e53397e3b83108  PROGRAM - NE BRISATI/project-backup.js
+771e207f7ce39fc6a9849ec83a41d3961e7a0687540f5f554e259ccd79e49b07  PROGRAM - NE BRISATI/project-backup.js
 c36c2e4f11f90714e2f64b1d5d4073968dc16bd5094a0c315ee76ea64e0bc401  PROGRAM - NE BRISATI/project-export.js
 3023fa3b3be5c5cbb7fe8a9e77b46f77fed8637cfac5b8a85546154f11bf8e40  PROGRAM - NE BRISATI/project-status.js
 f508498b8342fc7e4a978a1c1e081030c74776e9311aacdee7d03c68bb8e3952  PROGRAM - NE BRISATI/public/app.js
@@ -109,7 +109,7 @@ ce1b99ec622d20cff62bbef6f3b8a7856638b598347c4d24e20889386a611082  PROGRAM - NE B
 ec64e0a97f0f94079a1a011851477a59d6614014e97516f9b3ba0d967ce37233  PROGRAM - NE BRISATI/research-engine.js
 b4e8d44b3fe247e4e57121d6e0db5174fb3fd14cc0f69bb4f730a7bf78cda78b  PROGRAM - NE BRISATI/scene-batch-queue.js
 9fb2c52d173057ba32e646f1d2db205f40a3997788b07459682daa28f77d4438  PROGRAM - NE BRISATI/scene-candidates.js
-f62b57e31974541e644b2cb318f29055c35ac3f8b37f3504d5d4011b744e9b9c  PROGRAM - NE BRISATI/scene-planner.js
+a3945ed0b646111a1f233cb3860785ee6da045832c77288325230404e277a280  PROGRAM - NE BRISATI/scene-planner.js
 a0632c8f475208c6dc58cbc34c7fc7c9506324648d6840ed9fdb602ecc1b2267  PROGRAM - NE BRISATI/server.js
 49af4e71d7b791affb8a0f09206e9bcc28c4003f6976fe3ca4af09ee47121e34  PROGRAM - NE BRISATI/smart-text-placement-engine.js
 32270ea183e2003f4126cd3977198fa781bc8d1866143f7f614f6e0af6bf4f63  PROGRAM - NE BRISATI/stem-separation.js
@@ -118,10 +118,10 @@ a319118c9c47fa76d6e8c5a5ff1c6ca3d28fc8554e251078db44f7d1170326a7  PROGRAM - NE B
 81f473ed0b195c7a6ceea0305695c2b42c7f9a6810f2666c3e4f7ebafa008beb  PROGRAM - NE BRISATI/text-animation-engine.js
 1deff2dc126d620e6923a44b300c602e71ec4fdc8804d31cadd7ef74a0a48f4b  PROGRAM - NE BRISATI/text-layout-engine.js
 45f2f120e460cdf7a9a0afdddd3382c705532a2719182b3ea7ce8af080b81387  PROGRAM - NE BRISATI/text-overlay-export.js
-08d32c9d4c691e19ac4d6a48ff526e4964123cea97aec78f739ba81bfe99b8a5  PROGRAM - NE BRISATI/text-overlay-models.js
+e0efee917f9021ec4380d3056498ed3f7241f3d246f95a28edc41a60af6be516  PROGRAM - NE BRISATI/text-overlay-models.js
 10e4702f427ae3f2776d5f1537a07c449a7074822f863fe7fe191ab569c3d351  PROGRAM - NE BRISATI/text-style-presets.js
 9af21a4eea91551ce178b85754f9c2b9b34847b6f4d77736c2eab7db77bdc6ac  PROGRAM - NE BRISATI/text-video-tools.js
-504f9ceccb94fd028c70e09a4193b4f86d9a630963871b9807bf2947d9e795a8  PROGRAM - NE BRISATI/timeline-validator.js
+cd29be08d7e9a96a5442dc6251e1e64ec1b7e7ef84e70e631b2f87657ad12ef7  PROGRAM - NE BRISATI/timeline-validator.js
 b94567638cf98b040f87fabc006e130387ad25052a6642ea2b7e7d62a6fe1151  PROGRAM - NE BRISATI/tool-runner.js
 59534efcc263eee6f00ed8d849f2daba738fda4831aa666c79aea4eb24b047c9  PROGRAM - NE BRISATI/tools/faster-whisper-helper.py
 c5c2895457e7ef81d41df6931619fdb6cb9629bfe5254e876d268685045cb76d  PROGRAM - NE BRISATI/tools/INSTALIRAJ-DEMUCS-LITE.ps1
@@ -165,6 +165,7 @@ d4860873f2ca84623e39891b3470fce7548c20554abe1ab09ae47790af598250  tests/run-v8-c
 3a0b2e9aef2072ef560673a4506d8381660180d7995628e91adf5ccf5e65cbb4  tests/test-advanced-tools-deep.js
 776e48d6cf22a4b8c2c1827519089f688b35deef3b35258f48640aeef8c3fa17  tests/test-ai-response-validator.js
 65d4d667eecbae7bf8121d63cce49b70e90357aee2f7c6f990d448b8269cfa8b  tests/test-audio-probe.js
+766c2c14887d0d0d39fc808a45ba3989127abd68c787d9e66afb71bf4423f42f  tests/test-audio-project-state.js
 ce918e84a67037e73e8f59d279ae0494251409df15d269c1ddb4de0ee169545c  tests/test-audio-projects-integration.js
 471df6274dda07a57e9a603d6197630b1c04a18dd355a5b88968f1b9eb43717b  tests/test-auto-lyrics.js
 682418c282066484adb561ee5b59034b4b659b53d37aaaee091840a70f0d594f  tests/test-bpm-candidates.js
@@ -189,15 +190,15 @@ d6c207d6395b3959ab59d1cbff7fe1c5951e98f19c1efa88ddda77b453e3b02a  tests/test-kar
 fb41fc52e05a8ed45b1882049d81bf4b0c4365d768bc47b1f8b4bc7391a74854  tests/test-location-registry.js
 b18f0ddf15767653cf05c17c380eb872b724fd0ed6ac812b49aeb57385618632  tests/test-locked-identity-server-sync.js
 a073166dd7caae24aa9eceeee7c018d0ee959801fd572885ed5a69cd1d3575f3  tests/test-locked-identity.js
-701c1246442c3ae89b198244688fc16aae969f2e4e8ecfe1c3b3d451e7687763  tests/test-lyrics-alignment.js
+ca795f85b6e575bf8c7d5135e13194e21b68cca17ac7a6c4b588e37b7954566e  tests/test-lyrics-alignment.js
 8a5813c593c52ddd33918962b713de76da0da341befb902af23ca12996b55b54  tests/test-lyrics-line-breaker.js
-53d84ff756dc031f47df88795c546a4109601749a2b2512bc101c14708fed7d6  tests/test-lyrics-overlay-api.js
+77da30cd0e8b2be2c864aff95fbe2497382ec9d29ff9dbe823524dbb90d4ffe1  tests/test-lyrics-overlay-api.js
 135e3fca9c92a620db5a0819fcdb71afbd2bc5228c1bf0ec7a307412ccbf7975  tests/test-lyrics-overlay-storage.js
-9af95a97a997622632419613f34afb650512af4c4e7ead34734f4a896cee4577  tests/test-lyrics-parser.js
+c1f49bde86420a0fcf81f8158919c237060e8c174d84b3c195a1b2e77901c338  tests/test-lyrics-parser.js
 3dfcc6abcecc1afcd1803664967cd4ee56061b694c4c8ad4031b64feee74aa70  tests/test-lyrics-source-tracking.js
 8f669697a66346087920adcf4245e7ce652c2006908ed6c56a8b0cd066d4cb70  tests/test-module-contracts.js
 378709d3ace0a0b925f353bedfd925fddf6f75245aba360794ba3a27cb521b40  tests/test-music-analysis.js
-f59449196a96126fce4f5c6518fe80fb2a24e73559f529852c0fe590aeb4f310  tests/test-project-backup.js
+216854ed06861e21d134617224214820d9ce12b8615ed642279d2aeb301ea49a  tests/test-project-backup.js
 e3266c6fbce5f5080dc1f4b9f1d0662504caa288bedde6b9573de4028fc0a8e9  tests/test-project-export.js
 9724712fa1421c4625acf34b3e6b60d774d36fe355fe6ecd95da37a93a02fda7  tests/test-project-status.js
 76b548ac6e6d277007caf428e14f6f643075adca83b88d12ba5827959e2fbde3  tests/test-renderer-runtime.js
@@ -205,7 +206,7 @@ e3266c6fbce5f5080dc1f4b9f1d0662504caa288bedde6b9573de4028fc0a8e9  tests/test-pro
 b6923e8efb2df4ac41b511826b5b2ea228fd6a63edba2e0380455baca7681704  tests/test-runtime-entrypoints.js
 f9ce44c21270013262b9392fd5e7849ccc05fef145025cba24566054bd37c9e4  tests/test-scene-batch-queue.js
 ce8bdd1ec257bfc59007fa206561ccdcb6a46cafb6dcc4e126cf83d6615f6552  tests/test-scene-candidates.js
-e239f29a49e929a5a06eaa84d6ea04f840bc888af4a8b55f835b98bbbbd13fce  tests/test-scene-planner.js
+da9bddc2e479170013ab443be36d92e37adb1af601a10a30a9ee4d7015849fa7  tests/test-scene-planner.js
 c1156bd65a47e11cdcad8da8fbf0e61abd2b8f90584a6514573c72f6bfe02abf  tests/test-server.js
 754b990f8fe5b586bd6dc0e426169dae46503f226ea36a3ceed89aca37450919  tests/test-smart-text-placement-engine.js
 ae7ad84389d50fad7b20e970d5dc905bb3f0861eacadaa45f1959ea0aba3ff03  tests/test-static.js
@@ -214,10 +215,10 @@ ae7ad84389d50fad7b20e970d5dc905bb3f0861eacadaa45f1959ea0aba3ff03  tests/test-sta
 c7b8daa8c37c1e7de5af62312e9aa84b510d74b0fb564e0fbe33ad88f7bbe067  tests/test-text-animation-engine.js
 d22a5d270eab6843d0a4847dfff85c334ee997e371f974932074a05a3fd2846c  tests/test-text-layout-engine.js
 dd567d6b2f549e172005b7bca96530db151a5144cd88b832e65ac14095ee645f  tests/test-text-overlay-export.js
-f98d169045f30a0ac630db4ddb12ef8504e6d8399bec7f851739704937d6e37b  tests/test-text-overlay-models.js
+e9f31c497f7bde9efab4fb23ea8f2a17d60b39bca678446fcc11604815cccb42  tests/test-text-overlay-models.js
 37bf5e0cf0294b3ebe58a32089b9a5d67ff03dc4668db229f7d8fc9a018a2058  tests/test-text-style-presets.js
 beef59f1cc49eb44704faaec620652306c400090d1975116a61a51a67c1f0840  tests/test-text-video-tools.js
-f3b25b019a19c4b34e27f00d28af76da65c0615c75036abe37aadd99e890c333  tests/test-timeline-validator.js
+64749bd47e5470865832e7ae83dd23fda67cc364b85fd0152bf7fe1f13e3ef0b  tests/test-timeline-validator.js
 8e38c5a49c49d527c01f6375916d3120a67b810d244973f80e0a9304a29b9758  tests/test-transcription-provider.js
 ac4c91e8c3f5e1a216f89fff724cee7a9c46e4bfe7afc70429c4e14da9a7d828  tests/test-visual-diversity-validator.js
 0e4846a4d5051aae0765ff26bc889db65e25763ae6afffebc7654152a2f56a1e  tests/test-wardrobe-registry.js
