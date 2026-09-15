@@ -22,8 +22,19 @@ const child = childProcess.spawn(electronExe, ['--disable-gpu', probe], {
   windowsHide: true,
   stdio: ['ignore', 'pipe', 'pipe']
 });
-child.stdout.pipe(process.stdout);
-child.stderr.pipe(process.stderr);
+
+let stdout = '';
+let stderr = '';
+child.stdout.on('data', chunk => {
+  const text = chunk.toString();
+  stdout += text;
+  process.stdout.write(text);
+});
+child.stderr.on('data', chunk => {
+  const text = chunk.toString();
+  stderr += text;
+  process.stderr.write(text);
+});
 
 let timedOut = false;
 const timer = setTimeout(() => {
@@ -41,6 +52,8 @@ child.on('close', (code, signal) => {
   clearTimeout(timer);
   try {
     assert.strictEqual(timedOut, false, 'Renderer probe je prekoračio parent timeout.');
+    assert.match(stdout, /\[EXIT\] renderer probe code=0\b/, 'Renderer probe nije eksplicitno prijavio uspešan završetak.');
+    assert.doesNotMatch(stdout + '\n' + stderr, /\[FAIL\]/, 'Renderer probe je prijavio [FAIL] iako child process status može biti 0.');
     assert.strictEqual(code, 0, `Renderer probe nije prošao (status=${code}, signal=${signal || 'none'}).`);
     console.log('[OK] Pravi Electron/Chromium renderer probe je završen bez greške.');
   } catch (error) {
