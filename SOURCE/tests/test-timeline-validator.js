@@ -70,9 +70,9 @@ test('dupliran sceneId se otkriva', () => {
 test('odstupanje unutar tolerancije zaokruživanja (≤10ms) se PRIHVATA', () => {
   const scenes = [
     { sceneId: 's1', startMs: 0, endMs: 4996, durationMs: 4996 },
-    { sceneId: 's2', startMs: 5000, endMs: 10000, durationMs: 5000 } // 4ms "praznina", unutar tolerancije
+    { sceneId: 's2', startMs: 5000, endMs: 10000, durationMs: 5000 }
   ];
-  const result = validateTimeline(scenes, 10003); // 3ms odstupanje na kraju, unutar tolerancije
+  const result = validateTimeline(scenes, 10003);
   assert.strictEqual(result.valid, true);
 });
 
@@ -81,6 +81,24 @@ test('durationMs koji se ne slaže sa endMs-startMs se otkriva', () => {
   const result = validateTimeline(scenes, 5000);
   assert.strictEqual(result.valid, false);
   assert.ok(result.problems.some(p => p.includes('durationMs')));
+});
+
+test('NaN startMs/endMs se odbija umesto da prođe poređenja sa NaN', () => {
+  const result = validateTimeline([{ sceneId: 'bad', startMs: NaN, endMs: 5000, durationMs: NaN }], 5000);
+  assert.strictEqual(result.valid, false);
+  assert.ok(result.problems.some(p => p.includes('startMs/endMs')));
+});
+
+test('Infinity i nevalidan durationMs se odbijaju', () => {
+  const result = validateTimeline([{ sceneId: 'bad', startMs: 0, endMs: Infinity, durationMs: Infinity }], 5000);
+  assert.strictEqual(result.valid, false);
+  assert.ok(result.problems.length >= 1);
+});
+
+test('nevalidno stvarno trajanje audio-fajla se odbija', () => {
+  const result = validateTimeline([{ sceneId: 's1', startMs: 0, endMs: 5000, durationMs: 5000 }], NaN);
+  assert.strictEqual(result.valid, false);
+  assert.ok(result.problems.some(p => p.includes('Stvarno trajanje')));
 });
 
 test('prazan niz scena se odbija sa jasnom porukom', () => {
