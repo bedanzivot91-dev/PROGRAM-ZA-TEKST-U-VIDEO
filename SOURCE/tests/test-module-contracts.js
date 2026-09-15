@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..', 'PROGRAM - NE BRISATI');
@@ -31,7 +32,7 @@ const contracts = [
   ['scene-batch-queue.js', ['createBatchQueue', 'getNextBatch']],
   ['scene-candidates.js', ['buildSceneCandidates']],
   ['scene-planner.js', ['planScenes']],
-  ['smart-text-placement-engine.js', ['suggestPlacement']],
+  ['smart-text-placement-engine.js', ['suggestPlacement', 'detectFaces', 'runOpenCvFaceDetection']],
   ['stem-separation.js', ['separateStems']],
   ['storage-paths.js', ['ensureAll']],
   ['tattoo-visibility.js', ['validateSceneTattooVisibility']],
@@ -65,5 +66,18 @@ for (const [file, names] of contracts) {
     bad(file, error.message);
   }
 }
+
+try {
+  const toolRunner = require(path.join(ROOT, 'tool-runner.js'));
+  const openCv = toolRunner.TOOL_REGISTRY?.['opencv-face'];
+  if (openCv?.script === 'INSTALIRAJ-OPENCV-FACE-LITE.ps1') ok('tool-runner.js → opencv-face registrovan');
+  else bad('tool-runner.js → opencv-face', 'alat nije registrovan ili koristi pogrešnu skriptu');
+  const script = path.join(ROOT, 'tools', 'INSTALIRAJ-OPENCV-FACE-LITE.ps1');
+  if (fs.existsSync(script)) ok('OpenCV installer skripta postoji');
+  else bad('OpenCV installer skripta', 'nedostaje');
+} catch (error) {
+  bad('OpenCV tool contract', error.message);
+}
+
 console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
 process.exit(fail ? 1 : 0);
