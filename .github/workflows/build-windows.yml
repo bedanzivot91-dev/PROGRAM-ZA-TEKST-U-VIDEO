@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - chatgpt/fix-v15.6-incomplete-features
+      - "chatgpt/**"
     paths:
       - "SOURCE/**"
       - "INSTALIRAJ-PROGRAM.bat"
