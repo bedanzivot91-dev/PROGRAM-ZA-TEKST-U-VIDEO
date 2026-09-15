@@ -9,21 +9,42 @@ const electronExe = require('electron');
 const probe = path.join(__dirname, 'renderer-runtime-probe.js');
 
 console.log('== Renderer / Chromium runtime test ==');
-const result = childProcess.spawnSync(electronExe, [probe, '--disable-gpu'], {
-  cwd: ROOT,
-  env: {
-    ...process.env,
-    ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
-    MSS_TEST_NO_BROWSER: '1'
-  },
-  encoding: 'utf8',
-  windowsHide: true,
-  timeout: 90000,
-  maxBuffer: 10 * 1024 * 1024
-});
+const env = {
+  ...process.env,
+  ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+  MSS_TEST_NO_BROWSER: '1'
+};
+delete env.ELECTRON_RUN_AS_NODE;
 
-if (result.stdout) process.stdout.write(result.stdout);
-if (result.stderr) process.stderr.write(result.stderr);
-assert.ifError(result.error);
-assert.strictEqual(result.status, 0, `Renderer probe nije prošao (status=${result.status}, signal=${result.signal || 'none'}).`);
-console.log('[OK] Pravi Electron/Chromium renderer probe je završen bez greške.');
+const child = childProcess.spawn(electronExe, ['--disable-gpu', probe], {
+  cwd: ROOT,
+  env,
+  windowsHide: true,
+  stdio: ['ignore', 'pipe', 'pipe']
+});
+child.stdout.pipe(process.stdout);
+child.stderr.pipe(process.stderr);
+
+let timedOut = false;
+const timer = setTimeout(() => {
+  timedOut = true;
+  console.error('[FAIL] Parent renderer test timeout posle 80 sekundi — gasim Electron probe.');
+  try { child.kill(); } catch (_) {}
+}, 80000);
+
+child.on('error', error => {
+  clearTimeout(timer);
+  console.error(`[FAIL] Renderer probe nije mogao da se pokrene: ${error.stack || error.message}`);
+  process.exitCode = 1;
+});
+child.on('close', (code, signal) => {
+  clearTimeout(timer);
+  try {
+    assert.strictEqual(timedOut, false, 'Renderer probe je prekoračio parent timeout.');
+    assert.strictEqual(code, 0, `Renderer probe nije prošao (status=${code}, signal=${signal || 'none'}).`);
+    console.log('[OK] Pravi Electron/Chromium renderer probe je završen bez greške.');
+  } catch (error) {
+    console.error(`[FAIL] ${error.message}`);
+    process.exitCode = 1;
+  }
+});
