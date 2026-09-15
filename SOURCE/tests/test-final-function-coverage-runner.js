@@ -32,6 +32,15 @@ source = source.replace(updaterCall, `  const originalUpdaterLoad = Module._load
     Module._load = originalUpdaterLoad;
   }`);
 
+// requirePlusBridgeExtension namerno zahteva i lokalni IP I lokalni Host header.
+// Stari white-box zahtev nije imao Host pa je ispravno bio odbijen kao nelokalni zahtev.
+// Test mora da simulira stvaran lokalni HTTP zahtev umesto da slabi produkcionu proveru.
+const localReqPattern = /const localReq = \{ headers:\{\}, socket:\{remoteAddress:'127\.0\.0\.1', encrypted:false\} \};/;
+if (!localReqPattern.test(source)) {
+  throw new Error('localReq marker nije pronađen u final coverage testu.');
+}
+source = source.replace(localReqPattern, "const localReq = { headers:{host:'127.0.0.1:' + port}, socket:{remoteAddress:'127.0.0.1', encrypted:false} };");
+
 // Nijedan lokalni HTTP test ne sme da visi zauvek. Regex namerno prihvata LF i CRLF
 // jer GitHub Windows checkout može da promeni fizički završetak reda.
 const httpErrorPattern = /(\s+req\.on\('error', reject\);\s*)(if \(payload\) req\.write\(payload\);)/m;
@@ -70,6 +79,12 @@ ${suiteLog}`);
 const successMarker = "    console.log(`\\n== REZULTAT: ${passed} prošlo, 0 nije prošlo ==`);";
 if (!source.includes(successMarker)) throw new Error('Final suite success marker nije pronađen.');
 source = source.replace(successMarker, `    clearTimeout(hardWatchdog);\n${successMarker}`);
+
+// Ako bilo koja asercija padne, test mora odmah da završi neuspehom. process.exitCode sam
+// nije dovoljan ako je white-box HTTP server ostao otvoren pre handle.stop() poziva.
+const exitCodeMarker = '  process.exitCode = 1;';
+if (!source.includes(exitCodeMarker)) throw new Error('Final catch marker nije pronađen.');
+source = source.replace(exitCodeMarker, '  process.exit(1);');
 
 const mod = new Module(target, module);
 mod.filename = target;
