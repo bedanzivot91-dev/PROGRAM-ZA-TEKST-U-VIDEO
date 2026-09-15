@@ -124,14 +124,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/analyze-v8-coverage.js
 
-      - name: Fail when any audit layer failed
-        if: ${{ always() && (steps.dependency_audit.outcome != 'success' || steps.deep_audit.outcome != 'success' || steps.full_tests.outcome != 'success' || steps.coverage.outcome != 'success') }}
+      - name: Enforce green audit gate
+        if: ${{ always() }}
         shell: pwsh
+        env:
+          DEPENDENCY_AUDIT_OUTCOME: ${{ steps.dependency_audit.outcome }}
+          DEEP_AUDIT_OUTCOME: ${{ steps.deep_audit.outcome }}
+          FULL_TESTS_OUTCOME: ${{ steps.full_tests.outcome }}
+          COVERAGE_OUTCOME: ${{ steps.coverage.outcome }}
         run: |
-          Write-Error "Dubinski audit nije zelen. dependencies=${{ steps.dependency_audit.outcome }} deep=${{ steps.deep_audit.outcome }} tests=${{ steps.full_tests.outcome }} coverage=${{ steps.coverage.outcome }}"
-          exit 1
-
-      - name: Confirm green audit
-        if: ${{ always() && steps.dependency_audit.outcome == 'success' && steps.deep_audit.outcome == 'success' && steps.full_tests.outcome == 'success' && steps.coverage.outcome == 'success' }}
-        shell: pwsh
-        run: Write-Host "Svi slojevi dubinskog audita su zeleni."
+          $outcomes = @{
+            dependencies = $env:DEPENDENCY_AUDIT_OUTCOME
+            deep = $env:DEEP_AUDIT_OUTCOME
+            tests = $env:FULL_TESTS_OUTCOME
+            coverage = $env:COVERAGE_OUTCOME
+          }
+          $failed = $outcomes.GetEnumerator() | Where-Object { $_.Value -ne 'success' }
+          if ($failed) {
+            Write-Error "Dubinski audit nije zelen. dependencies=$($outcomes.dependencies) deep=$($outcomes.deep) tests=$($outcomes.tests) coverage=$($outcomes.coverage)"
+            exit 1
+          }
+          Write-Host "Svi slojevi dubinskog audita su zeleni."
