@@ -54,8 +54,19 @@ source = source.replace(browserOpenedMarker, `${browserOpenedMarker}
     await t.waitForBrowserConnection(1);
     ok(true, 'server waitForBrowserConnection izvršen');`);
 
-// Stari coverage URL nije gađao stvarnu overlay export rutu pa su inline srt/vtt/ass/json
-// callback-i ostajali neizvršeni iako je test prihvatao 404. Gađamo pravu rutu i tražimo 200.
+// Stari coverage URL-ovi nisu gađali stvarne Lyrics Overlay rute. Zbog toga track/cue nisu
+// ni nastajali, pa se petlja za srt/vtt/ass/json preskakala iako je test izgledao zelen.
+// Preusmeravamo kreiranje track-a, cue-a i export na aktuelne produkcione REST rute i tražimo 200.
+const oldTrackRoute = '`/api/audio-projects/${projectId}/text-tracks`';
+const newTrackRoute = '`/api/audio-projects/${projectId}/lyrics-overlay/text-tracks`';
+if (!source.includes(oldTrackRoute)) throw new Error('Overlay track route marker nije pronađen.');
+source = source.replace(oldTrackRoute, newTrackRoute);
+
+const oldCueRoute = '`/api/audio-projects/${projectId}/text-tracks/${trackId}/text-cues`';
+const newCueRoute = '`/api/audio-projects/${projectId}/lyrics-overlay/text-tracks/${trackId}/text-cues`';
+if (!source.includes(oldCueRoute)) throw new Error('Overlay cue route marker nije pronađen.');
+source = source.replace(oldCueRoute, newCueRoute);
+
 const oldOverlayRoute = '`/api/audio-projects/${projectId}/text-tracks/${trackId}/export?format=${format}`';
 const newOverlayRoute = '`/api/audio-projects/${projectId}/lyrics-overlay/export?trackId=${encodeURIComponent(trackId)}&format=${format}`';
 if (!source.includes(oldOverlayRoute)) throw new Error('Overlay export route marker nije pronađen.');
