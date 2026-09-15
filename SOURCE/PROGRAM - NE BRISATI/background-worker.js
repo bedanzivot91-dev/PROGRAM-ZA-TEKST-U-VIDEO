@@ -7,7 +7,7 @@ const https = require('https');
 const crypto = require('crypto');
 const childProcess = require('child_process');
 
-const VERSION = '15.4';
+const VERSION = '15.6';
 const PORT = Number(process.env.PORT || 4180);
 const APP_DIR = __dirname;
 const ROOT_DIR = path.resolve(APP_DIR, '..');
