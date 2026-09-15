@@ -82,8 +82,11 @@ function fallbackUnprotect(buffer) {
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(encrypted), decipher.final()]);
 }
+function useTestFallbackCrypto() {
+  return process.env.NODE_ENV === 'test' && process.env.MSS_TEST_CRYPTO_PROVIDER === 'fallback';
+}
 function protectBuffer(buffer) {
-  if (process.platform === 'win32') return { provider: 'windows-dpapi-current-user', bytes: powershellDpapi('protect', buffer) };
+  if (process.platform === 'win32' && !useTestFallbackCrypto()) return { provider: 'windows-dpapi-current-user', bytes: powershellDpapi('protect', buffer) };
   return { provider: 'local-aes-gcm-test-fallback', bytes: fallbackProtect(buffer) };
 }
 function unprotectBuffer(provider, bytes) {
@@ -115,7 +118,6 @@ function bestEffortRemovePlainFile(file) {
   try {
     if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return true;
     const size = fs.statSync(file).size;
-    // Prepisivanje je samo dodatna mera; na SSD-u se ne može garantovati fizičko brisanje svih ranijih blokova.
     if (size > 0 && size <= 32 * 1024 * 1024) {
       const fd = fs.openSync(file, 'r+');
       try {
@@ -155,7 +157,6 @@ function migratePlainJson(plainFile, secureName, fallback) {
   const legacy = readJson(plainFile, null);
   if (!legacy) return { migrated: false, secureFile: target, removedPlaintext: purgeLegacyPlaintext(plainFile).length };
   writeSecureJson(target, legacy);
-  // Ne ostavljamo čitljiv .bak sa tokenima. Posle uspešnog DPAPI upisa brišemo stari JSON.
   const removed = purgeLegacyPlaintext(plainFile);
   return { migrated: true, secureFile: target, removedPlaintext: removed.length, fallback };
 }
@@ -175,9 +176,6 @@ function securityStatus() {
 }
 
 async function psJson(script, timeout = 30_000) {
-  // Namerno asinhrono (execFile, ne execFileSync): PowerShell/CIM upiti mogu trajati
-  // nekoliko sekundi, a execFileSync bi u tom vremenu blokirao ceo Node event loop
-  // i zamrznuo SVE ostale rute na lokalnom serveru (health, heartbeat, sve /api/*).
   const { stdout } = await execFileAsync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', `[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); ${script}`], {
     encoding: 'utf8', windowsHide: true, timeout, maxBuffer: 10 * 1024 * 1024
   });
@@ -196,7 +194,6 @@ async function systemProfile() {
       gpus = normalizeArray(result?.gpus).map(item => ({ name: clean(item.Name), vramBytes: Number(item.AdapterRAM || 0), vramGb: gb(item.AdapterRAM), driverVersion: clean(item.DriverVersion), source: 'Win32_VideoController' }));
       disks = normalizeArray(result?.disks).map(item => ({ drive: clean(item.DeviceID), label: clean(item.VolumeName), sizeGb: gb(item.Size), freeGb: gb(item.FreeSpace) }));
       cpu = { name: clean(result?.cpu?.Name) || cpu.name, cores: Number(result?.cpu?.NumberOfCores || 0), logicalProcessors: Number(result?.cpu?.NumberOfLogicalProcessors || cpu.logicalProcessors) };
-      // AdapterRAM ume da bude netačan na nekim drajverima. Kada postoji NVIDIA-SMI, njegova vrednost ima prednost.
       try {
         const nvidia = await psJson("$x=& nvidia-smi.exe --query-gpu=name,memory.total,driver_version --format=csv,noheader,nounits 2>$null; @($x)|ForEach-Object{$p=$_ -split ','; @{Name=$p[0].Trim();MemoryMb=[double]$p[1];Driver=$p[2].Trim()}}|ConvertTo-Json -Compress");
         const rows = normalizeArray(nvidia);
@@ -256,7 +253,7 @@ function readSafetensorsMetadata(file) {
     const header = Buffer.alloc(headerLength);
     if (fs.readSync(fd, header, 0, headerLength, 8) !== headerLength) return null;
     const parsed = JSON.parse(header.toString('utf8'));
-    const tensorNames = Object.keys(parsed).filter(key => key !== '__metadata__');
+    const tensorNames = Object.keys(parsed).filter(name => name !== '__metadata__');
     return { format: 'safetensors', tensorCount: tensorNames.length, metadata: parsed.__metadata__ || {}, headerBytes: headerLength };
   } catch { return null; } finally { fs.closeSync(fd); }
 }
