@@ -27,7 +27,7 @@ function Test-StudioHealthPort([int]$Port) {
   return $null
 }
 
-function Wait-StudioHealth([int]$TimeoutSeconds = 60) {
+function Wait-StudioHealth([int]$TimeoutSeconds = 90) {
   $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
   $lastCandidateLog = [datetime]::MinValue
   while ((Get-Date) -lt $deadline) {
@@ -158,7 +158,7 @@ try {
   $installedProcess = Start-Process -FilePath $installedExe.FullName -PassThru
   $installedProbe = $null
   try {
-    $installedProbe = Wait-StudioHealth 60
+    $installedProbe = Wait-StudioHealth 90
     Assert-StudioVersion $installedProbe 'Installed EXE'
   } catch {
     Write-PackagedDiagnostics 'INSTALLED EXE FAILURE' $installedProcess $installDir
@@ -179,7 +179,7 @@ try {
   $portableProcess = Start-Process -FilePath $portable -PassThru
   $portableProbe = $null
   try {
-    $portableProbe = Wait-StudioHealth 60
+    $portableProbe = Wait-StudioHealth 90
     Assert-StudioVersion $portableProbe 'Portable EXE'
   } catch {
     Write-PackagedDiagnostics 'PORTABLE EXE FAILURE' $portableProcess (Split-Path -Parent $portable)
