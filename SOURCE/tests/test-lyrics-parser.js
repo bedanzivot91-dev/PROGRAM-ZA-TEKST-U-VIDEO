@@ -52,6 +52,14 @@ test('razdvaja strukturne i žanrovske/emotivne tagove [Chorus][Pop][Powerful][M
   assert.deepStrictEqual(result.sections[0].tags, ['Pop', 'Powerful', 'Male']);
 });
 
+test('razdvaja i multi-tag red sa razmacima [Chorus] [Pop] [Powerful]', () => {
+  const result = parseLyrics('[Chorus] [Pop] [Powerful]\nRed teksta');
+  assert.strictEqual(result.sections.length, 1);
+  assert.strictEqual(result.sections[0].type, 'chorus');
+  assert.deepStrictEqual(result.sections[0].tags, ['Pop', 'Powerful']);
+  assert.deepStrictEqual(result.lines.map(l => l.text), ['Red teksta']);
+});
+
 test('čuva originalan tekst NEIZMENJEN (razmaci, redosled, velika/mala slova)', () => {
   const text = '[Verse]\n  Neobičan   razmak i Veliko Slovo ';
   const result = parseLyrics(text);
