@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+const PROGRAM = path.join(ROOT, 'PROGRAM - NE BRISATI');
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const fullVersion = String(pkg.version || '').trim();
 if (!/^\d+\.\d+\.\d+$/.test(fullVersion)) throw new Error(`Neispravna package verzija: ${fullVersion}`);
@@ -11,25 +12,16 @@ const protocolVersion = fullVersion.split('.').slice(0, 2).join('.');
 const checkOnly = process.argv.includes('--check');
 
 const targets = [
-  {
-    file: path.join(ROOT, 'PROGRAM - NE BRISATI', 'server.js'),
-    pattern: /const VERSION = '[^']+';/,
-    expected: `const VERSION = '${protocolVersion}';`,
-    label: 'server protocol'
-  },
-  {
-    file: path.join(ROOT, 'PROGRAM - NE BRISATI', 'launcher.js'),
-    pattern: /const VERSION = '[^']+';/,
-    expected: `const VERSION = '${protocolVersion}';`,
-    label: 'launcher protocol'
-  },
-  {
-    file: path.join(ROOT, 'PROGRAM - NE BRISATI', 'background-worker.js'),
-    pattern: /const VERSION = '[^']+';/,
-    expected: `const VERSION = '${protocolVersion}';`,
-    label: 'background-worker protocol'
-  }
-];
+  ['server.js', 'server protocol'],
+  ['launcher.js', 'launcher protocol'],
+  ['background-worker.js', 'background-worker protocol'],
+  ['research-engine.js', 'research-engine protocol']
+].map(([name, label]) => ({
+  file: path.join(PROGRAM, name),
+  pattern: /const VERSION = '[^']+';/,
+  expected: `const VERSION = '${protocolVersion}';`,
+  label
+}));
 
 let changed = 0;
 for (const target of targets) {
@@ -49,6 +41,25 @@ for (const target of targets) {
   fs.writeFileSync(target.file, updated, 'utf8');
   changed += 1;
   console.log(`[FIX] ${target.label}: ${match[0]} -> ${target.expected}`);
+}
+
+// Dodatni osigurač: nijedan drugi produkcioni root modul ne sme tiho da ostane
+// na starom x.y VERSION broju. Ako se takva konstanta doda u budućnosti,
+// audit je odmah vidi čak i ako fajl nije ručno dodat u targets iznad.
+const knownTargetFiles = new Set(targets.map(target => path.resolve(target.file)));
+for (const entry of fs.readdirSync(PROGRAM, { withFileTypes: true })) {
+  if (!entry.isFile() || !entry.name.endsWith('.js')) continue;
+  const file = path.join(PROGRAM, entry.name);
+  if (knownTargetFiles.has(path.resolve(file))) continue;
+  const text = fs.readFileSync(file, 'utf8');
+  const match = text.match(/const VERSION = ['"](\d+\.\d+)(?:\.\d+)?['"];/);
+  if (!match) continue;
+  if (match[1] !== protocolVersion) {
+    console.error(`[FAIL] ${entry.name}: pronađena zastarela runtime VERSION=${match[1]}, očekivano ${protocolVersion}. Dodaj modul u centralni version sync ili ukloni duplu verziju.`);
+    process.exitCode = 1;
+  } else {
+    console.log(`[OK] ${entry.name} dodatna VERSION konstanta = ${match[1]}`);
+  }
 }
 
 const preloadFile = path.join(ROOT, 'desktop', 'preload.js');
