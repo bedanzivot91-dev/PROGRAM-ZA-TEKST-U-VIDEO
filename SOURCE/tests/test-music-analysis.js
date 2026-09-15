@@ -1,7 +1,5 @@
 'use strict';
-// Testira music-analysis.js. Librosa NIJE instalirana na ovoj mašini (stvarno stanje) —
-// testira se realna fallback putanja (opcioni modul, ne sme oboriti server) i keširanje.
-// Prava librosa analiza zahteva instalaciju preko panela LOKALNI ALATI.
+// Testira music-analysis.js. Librosa može biti odsutna; fallback ne sme oboriti program.
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -38,9 +36,25 @@ async function main() {
   });
 
   await testAsync('analyzeMusic() baca grešku bez audioHash', async () => {
-    let threw = false;
-    try { await musicAnalysis.analyzeMusic('/x.mp3', ''); } catch { threw = true; }
-    assert.ok(threw);
+    await assert.rejects(() => musicAnalysis.analyzeMusic('/x.mp3', ''), /audioHash|nedozvoljene/i);
+  });
+
+  test('safeAudioHash odbija path traversal i nedozvoljene znakove', () => {
+    assert.throws(() => musicAnalysis.safeAudioHash('../outside'), /nedozvoljene/);
+    assert.throws(() => musicAnalysis.safeAudioHash('hash/child'), /nedozvoljene/);
+    assert.strictEqual(musicAnalysis.safeAudioHash('sha256-abc_123'), 'sha256-abc_123');
+  });
+
+  test('normalizeAnalysisData odbija nevalidan BPM i pogrešne tipove nizova', () => {
+    assert.strictEqual(musicAnalysis.normalizeAnalysisData({ bpm: { primary: NaN } }), null);
+    assert.strictEqual(musicAnalysis.normalizeAnalysisData({ bpm: { primary: 120 }, beatTimesMs: 'nije-niz' }), null);
+    const valid = musicAnalysis.normalizeAnalysisData({ bpm: { primary: 120 } });
+    assert.strictEqual(valid.bpm.primary, 120);
+    assert.deepStrictEqual(valid.beatTimesMs, []);
+  });
+
+  test('unavailableResult daje stabilan ok:false rezultat', () => {
+    assert.deepStrictEqual(musicAnalysis.unavailableResult('x'), { ok: false, reason: 'x' });
   });
 
   await testAsync('analyzeMusic() koristi keš kada je analiza već sačuvana za taj hash', async () => {
@@ -55,11 +69,22 @@ async function main() {
     assert.strictEqual(result.bpm.primary, 120);
   });
 
+  await testAsync('nevalidan keš se ignoriše umesto da se vrati kao uspešna analiza', async () => {
+    const cacheDir = path.join(testDataDir, 'cache', 'music-analysis');
+    fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(path.join(cacheDir, 'bad-cache.json'), JSON.stringify({ ok: true, bpm: { primary: 'nije-broj' } }), 'utf8');
+    const fakeAudio = path.join(testDataDir, 'song3.mp3');
+    fs.writeFileSync(fakeAudio, 'placeholder');
+    const result = await musicAnalysis.analyzeMusic(fakeAudio, 'bad-cache');
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual(result.reason, 'librosa_not_installed');
+  });
+
   try { fs.rmSync(testDataDir, { recursive: true, force: true }); } catch {}
   delete process.env.MSS_DATA_DIR;
 
   console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
-  console.log('NAPOMENA: prava librosa analiza nije izvršena ovde — zahteva instaliran alat.');
+  console.log('NAPOMENA: prava librosa analiza zahteva instaliran lokalni alat.');
   process.exit(fail ? 1 : 0);
 }
 
