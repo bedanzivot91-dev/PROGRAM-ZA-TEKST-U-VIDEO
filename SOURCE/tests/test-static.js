@@ -95,25 +95,20 @@ console.log('-- v15.6 completion UI wiring --');
 
   const completion = fs.readFileSync(completionFile, 'utf8');
   const server = fs.readFileSync(path.join(PROGRAM_DIR, 'server.js'), 'utf8');
-  const requiredUiFragments = [
-    '/api/audio-projects',
-    '/audio',
-    '/lyrics',
-    '/auto-lyrics',
-    '/align',
-    '/analyze-music',
-    '/plan-scenes',
-    '/rename',
-    '/duplicate',
-    '/archive',
-    'lyrics-overlay',
-    'project.zip',
-    'project.pdf',
-    'timeline.edl'
+  const literalUiFragments = [
+    '/api/audio-projects', '/audio', '/lyrics', '/plan-scenes', '/rename', '/duplicate', '/archive',
+    'lyrics-overlay', 'project.zip', 'project.pdf', 'timeline.edl'
   ];
-  for (const fragment of requiredUiFragments) {
+  for (const fragment of literalUiFragments) {
     if (completion.includes(fragment)) ok(`completion-ui.js povezuje ${fragment}`);
     else bad(`completion-ui.js ${fragment}`, 'nedostaje korisnički tok');
+  }
+
+  const generatedActions = ['auto-lyrics', 'align', 'analyze-music'];
+  for (const action of generatedActions) {
+    const actionPattern = new RegExp(`runProjectAction\\(['\"]${action}['\"]`);
+    if (actionPattern.test(completion)) ok(`completion-ui.js povezuje /${action} kroz runProjectAction`);
+    else bad(`completion-ui.js /${action}`, 'nedostaje korisnički tok');
   }
 
   const requiredServerFragments = ['/auto-lyrics', '/align', '/analyze-music', '/plan-scenes', '/rename', '/duplicate', '/archive', '/lyrics-overlay'];
