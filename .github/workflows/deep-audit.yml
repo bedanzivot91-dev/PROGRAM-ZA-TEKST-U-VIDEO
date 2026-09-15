@@ -39,6 +39,14 @@ jobs:
         shell: pwsh
         run: npm ci
 
+      - name: Apply audited dependency fixes on deep-audit branch
+        if: startsWith(github.ref, 'refs/heads/chatgpt/deep-audit-')
+        working-directory: SOURCE
+        shell: pwsh
+        run: |
+          npm audit fix
+          npm audit --audit-level=high
+
       - name: Production dependency security audit
         working-directory: SOURCE
         shell: pwsh
@@ -56,17 +64,17 @@ jobs:
         shell: pwsh
         run: node scripts/generate-integrity-manifest.js --write
 
-      - name: Commit synchronized manifest on deep-audit branch
+      - name: Commit synchronized dependencies and manifest on deep-audit branch
         if: startsWith(github.ref, 'refs/heads/chatgpt/deep-audit-')
         shell: pwsh
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
+          git add "SOURCE/package.json" "SOURCE/package-lock.json" "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
           if (git diff --cached --quiet) {
-            Write-Host "Integrity manifest je već sinhronizovan."
+            Write-Host "Dependencies i integrity manifest su već sinhronizovani."
           } else {
-            git commit -m "Synchronize v15.6.1 integrity manifest"
+            git commit -m "Synchronize audited dependencies and v15.6.1 integrity manifest"
             git push origin HEAD:${{ github.ref_name }}
           }
 
