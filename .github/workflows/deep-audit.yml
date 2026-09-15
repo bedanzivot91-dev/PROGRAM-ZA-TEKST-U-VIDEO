@@ -69,15 +69,32 @@ jobs:
         run: git diff --exit-code -- "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
 
       - name: Deep audit every source layer
+        id: deep_audit
+        continue-on-error: true
         working-directory: SOURCE
         shell: pwsh
         run: node tests/test-deep-audit.js
 
       - name: Complete test suite with V8 coverage
+        if: always()
+        id: coverage
+        continue-on-error: true
         working-directory: SOURCE
         shell: pwsh
         run: |
           if (Test-Path .v8-coverage) { Remove-Item .v8-coverage -Recurse -Force }
           $env:NODE_V8_COVERAGE = (Join-Path $PWD '.v8-coverage')
           npm test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/analyze-v8-coverage.js
+
+      - name: Fail when any audit layer failed
+        if: always()
+        shell: pwsh
+        run: |
+          $deep = '${{ steps.deep_audit.outcome }}'
+          $coverage = '${{ steps.coverage.outcome }}'
+          if ($deep -ne 'success' -or $coverage -ne 'success') {
+            Write-Error "Dubinski audit nije zelen. deep=$deep coverage=$coverage"
+            exit 1
+          }
