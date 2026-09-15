@@ -41,8 +41,10 @@ jobs:
           ffmpeg -version
           ffprobe -version
 
-      - name: Synchronize package-lock version metadata
-        run: npm version 15.6.1 --no-git-tag-version --allow-same-version
+      - name: Synchronize package-lock and patched transitive dependencies
+        run: |
+          npm version 15.6.1 --no-git-tag-version --allow-same-version
+          npm install --package-lock-only --ignore-scripts
 
       - name: Commit synchronized lockfile on repair branch
         if: startsWith(github.ref, 'refs/heads/chatgpt/')
@@ -55,7 +57,7 @@ jobs:
           if (git diff --cached --quiet) {
             Write-Host "package-lock.json je već sinhronizovan."
           } else {
-            git commit -m "Synchronize package-lock metadata for v15.6.1"
+            git commit -m "Synchronize package-lock metadata and security patches for v15.6.1"
             git push origin HEAD:${{ github.ref_name }}
           }
 
