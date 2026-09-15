@@ -70,6 +70,9 @@
     "electron": "^43.2.0",
     "electron-builder": "^26.15.3"
   },
+  "overrides": {
+    "js-yaml": "4.3.2"
+  },
   "build": {
     "appId": "com.nedostajespunoo.muzickispotstudio",
     "productName": "Muzicki Spot Studio Free",
