@@ -33,10 +33,14 @@ function createTextTrack({ type, name = '', language = 'sr', defaultStyleId = ''
 }
 
 // cue: sekcija 4. Vremenska pravila se NE proveravaju ovde (to radi validateCue/validateTrack) —
-// createCue samo gradi ispravno oblikovan objekat.
+// createCue samo gradi ispravno oblikovan objekat. Nevalidan words tip se ipak odbija odmah,
+// jer bi njegovo tiho pretvaranje u prazan niz izgubilo karaoke/forced-alignment podatke.
 function createCue({ trackId, sectionId = '', lineId = '', startMs, endMs, text, words = [], timingSource = 'manual', confidence = 1 } = {}) {
   if (!TIMING_SOURCES.has(timingSource)) {
     throw new Error(`Nepoznat timingSource: "${timingSource}". Dozvoljeno: ${[...TIMING_SOURCES].join(', ')}.`);
+  }
+  if (!Array.isArray(words)) {
+    throw new TypeError('Cue words mora biti niz.');
   }
   return {
     cueId: newId('cue'),
@@ -45,8 +49,17 @@ function createCue({ trackId, sectionId = '', lineId = '', startMs, endMs, text,
     lineId,
     startMs: Math.round(startMs),
     endMs: Math.round(endMs),
-    text: String(text || ''),
-    words: words.map(w => ({ wordId: w.wordId || newId('word'), text: w.text, startMs: Math.round(w.startMs), endMs: Math.round(w.endMs), confidence: w.confidence ?? null })),
+    text: String(text ?? ''),
+    words: words.map((word, index) => {
+      if (!word || typeof word !== 'object') throw new TypeError(`Cue words[${index}] mora biti objekat.`);
+      return {
+        wordId: word.wordId || newId('word'),
+        text: String(word.text ?? ''),
+        startMs: Math.round(word.startMs),
+        endMs: Math.round(word.endMs),
+        confidence: word.confidence ?? null
+      };
+    }),
     timingSource,
     confidence,
     needsReview: confidence < 0.6,
@@ -63,27 +76,43 @@ function createCue({ trackId, sectionId = '', lineId = '', startMs, endMs, text,
 // audio trajanja". Vraća listu problema (ne baca) da pozivalac odluči kako da reaguje.
 function validateCue(cue, { totalDurationMs = null } = {}) {
   const problems = [];
+  if (!cue || typeof cue !== 'object') {
+    return { valid: false, problems: ['Cue nije validan objekat.'] };
+  }
+  const cueId = cue.cueId || '(bez id-a)';
   if (!Number.isFinite(cue.startMs) || !Number.isFinite(cue.endMs)) {
-    problems.push(`Cue "${cue.cueId}" nema validne startMs/endMs.`);
+    problems.push(`Cue "${cueId}" nema validne startMs/endMs.`);
     return { valid: false, problems };
   }
-  if (cue.endMs <= cue.startMs) problems.push(`Cue "${cue.cueId}": endMs (${cue.endMs}) mora biti veći od startMs (${cue.startMs}).`);
-  if (cue.startMs < 0) problems.push(`Cue "${cue.cueId}": startMs ne sme biti negativan.`);
+  if (cue.endMs <= cue.startMs) problems.push(`Cue "${cueId}": endMs (${cue.endMs}) mora biti veći od startMs (${cue.startMs}).`);
+  if (cue.startMs < 0) problems.push(`Cue "${cueId}": startMs ne sme biti negativan.`);
   if (Number.isFinite(totalDurationMs) && cue.endMs > totalDurationMs + 10) {
-    problems.push(`Cue "${cue.cueId}": endMs (${cue.endMs}) izlazi van trajanja audio-fajla (${totalDurationMs}ms).`);
+    problems.push(`Cue "${cueId}": endMs (${cue.endMs}) izlazi van trajanja audio-fajla (${totalDurationMs}ms).`);
   }
-  for (const word of cue.words || []) {
-    if (word.endMs <= word.startMs) problems.push(`Cue "${cue.cueId}": reč "${word.text}" ima endMs <= startMs.`);
-    if (word.startMs < cue.startMs - 10 || word.endMs > cue.endMs + 10) {
-      problems.push(`Cue "${cue.cueId}": reč "${word.text}" (${word.startMs}-${word.endMs}) je van granica cue-a (${cue.startMs}-${cue.endMs}).`);
+
+  if (cue.words !== undefined && !Array.isArray(cue.words)) {
+    problems.push(`Cue "${cueId}": words mora biti niz.`);
+  } else {
+    for (const word of cue.words || []) {
+      const wordText = word?.text ?? '';
+      if (!word || typeof word !== 'object' || !Number.isFinite(word.startMs) || !Number.isFinite(word.endMs)) {
+        problems.push(`Cue "${cueId}": reč "${wordText}" nema validne startMs/endMs.`);
+        continue;
+      }
+      if (word.endMs <= word.startMs) problems.push(`Cue "${cueId}": reč "${wordText}" ima endMs <= startMs.`);
+      if (word.startMs < cue.startMs - 10 || word.endMs > cue.endMs + 10) {
+        problems.push(`Cue "${cueId}": reč "${wordText}" (${word.startMs}-${word.endMs}) je van granica cue-a (${cue.startMs}-${cue.endMs}).`);
+      }
     }
   }
   return { valid: problems.length === 0, problems };
 }
 
 function validateTrack(track, options = {}) {
+  if (!track || typeof track !== 'object') return { valid: false, problems: ['Text track nije validan objekat.'] };
+  if (!Array.isArray(track.cues)) return { valid: false, problems: [`Track "${track.trackId || '(bez id-a)'}" nema validan cues niz.`] };
   const problems = [];
-  const activeCues = track.cues.filter(c => !c.deleted).sort((a, b) => a.startMs - b.startMs);
+  const activeCues = track.cues.filter(c => !c?.deleted).sort((a, b) => (a?.startMs ?? 0) - (b?.startMs ?? 0));
   for (const cue of activeCues) {
     const result = validateCue(cue, options);
     problems.push(...result.problems);
@@ -92,11 +121,13 @@ function validateTrack(track, options = {}) {
 }
 
 // style: sekcije 6-8. Puna forma sa razumnim, modernim/čitljivim podrazumevanim vrednostima
-// (pravilo: "podrazumevani predlozi moraju biti moderni, čitljivi i urbani").
+// (pravilo: "podrazumevani predlozi moraju biti moderni, čitljivi i urbani"). Partial override
+// podobjekta MORA sačuvati ostale default vrednosti; u suprotnom npr. {font:{family:'X'}} tiho
+// briše weight/fallback/textCase i kasnije ruši layout/render kod.
 function createStyle(overrides = {}) {
-  return {
+  const base = {
     styleId: newId('style'),
-    name: overrides.name || 'Custom Style',
+    name: 'Custom Style',
     font: { family: 'Inter', fallback: 'Arial', weight: 700, italic: false, underline: false, strikethrough: false, textCase: 'original' },
     size: { value: 6, unit: 'percent-height', min: 2, max: 15 },
     spacing: { letterSpacing: 0, wordSpacing: 0, lineHeight: 1.2, paragraphSpacing: 0 },
@@ -107,9 +138,15 @@ function createStyle(overrides = {}) {
     shadow: { enabled: true, color: '#000000', opacity: 0.6, offsetX: 0, offsetY: 2, blur: 4 },
     glow: { enabled: false, color: '#FFFFFF', intensity: 0, blur: 8, pulse: false },
     background: { mode: 'none', color: '#000000', opacity: 0.5, paddingX: 12, paddingY: 6, borderRadius: 6 },
-    transform: { rotation: 0, skew: 0, scaleX: 1, scaleY: 1 },
-    ...overrides
+    transform: { rotation: 0, skew: 0, scaleX: 1, scaleY: 1 }
   };
+  const safeOverrides = overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {};
+  const result = { ...base, ...safeOverrides };
+  for (const key of ['font', 'size', 'spacing', 'alignment', 'color', 'karaoke', 'outline', 'shadow', 'glow', 'background', 'transform']) {
+    const patch = safeOverrides[key];
+    result[key] = patch && typeof patch === 'object' && !Array.isArray(patch) ? { ...base[key], ...patch } : { ...base[key] };
+  }
+  return result;
 }
 
 module.exports = { createTextTrack, createCue, validateCue, validateTrack, createStyle, TRACK_TYPES, TIMING_SOURCES, PLACEMENT_MODES, newId };
