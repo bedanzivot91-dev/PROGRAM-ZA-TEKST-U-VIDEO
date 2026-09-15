@@ -108,7 +108,7 @@ function ok(value, message) { assert.ok(value, message); passed++; console.log(`
       {id:'a',viewCount:1000,uploadDate:'20260801'},
       {id:'b',viewCount:100000,uploadDate:'20260901'}
     ]);
-    ok(scored.length === 2 && scored[1].publicMomentumScore >= scored[0].publicMomentumScore, 'scoreViralCandidates koristi median/publicMomentum');
+    ok(scored.length === 2 && scored[0].publicMomentumScore >= scored[1].publicMomentumScore, 'scoreViralCandidates sortira po opadajućem median/publicMomentum skoru');
 
     const dna = research.loadChannelDnaBase();
     ok(Array.isArray(dna.channels) && dna.channels.length >= 2, 'loadChannelDnaBase vraća bazu kanala');
