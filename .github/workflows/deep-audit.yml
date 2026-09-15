@@ -15,7 +15,7 @@ permissions:
 jobs:
   deep-audit:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -68,23 +68,28 @@ jobs:
         shell: pwsh
         run: git diff --exit-code -- "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
 
-      - name: Deep audit every source layer
+      - name: Deep static and structural audit
         id: deep_audit
         continue-on-error: true
         working-directory: SOURCE
         shell: pwsh
-        run: node tests/test-deep-audit.js
+        run: node tests/test-deep-audit-v2.js
 
-      - name: Complete test suite with V8 coverage
+      - name: Complete existing test suite without instrumentation
+        id: full_tests
+        continue-on-error: true
+        working-directory: SOURCE
+        shell: pwsh
+        run: npm test
+
+      - name: Backend and Electron V8 function coverage
         if: always()
         id: coverage
         continue-on-error: true
         working-directory: SOURCE
         shell: pwsh
         run: |
-          if (Test-Path .v8-coverage) { Remove-Item .v8-coverage -Recurse -Force }
-          $env:NODE_V8_COVERAGE = (Join-Path $PWD '.v8-coverage')
-          npm test
+          node tests/run-v8-coverage-suite.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/analyze-v8-coverage.js
 
@@ -93,8 +98,9 @@ jobs:
         shell: pwsh
         run: |
           $deep = '${{ steps.deep_audit.outcome }}'
+          $tests = '${{ steps.full_tests.outcome }}'
           $coverage = '${{ steps.coverage.outcome }}'
-          if ($deep -ne 'success' -or $coverage -ne 'success') {
-            Write-Error "Dubinski audit nije zelen. deep=$deep coverage=$coverage"
+          if ($deep -ne 'success' -or $tests -ne 'success' -or $coverage -ne 'success') {
+            Write-Error "Dubinski audit nije zelen. deep=$deep tests=$tests coverage=$coverage"
             exit 1
           }
