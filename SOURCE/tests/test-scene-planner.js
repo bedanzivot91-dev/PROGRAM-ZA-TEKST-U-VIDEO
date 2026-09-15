@@ -16,8 +16,6 @@ function test(label, fn) {
 console.log('== ScenePlanner testovi ==');
 
 test('ručno proverljiv scenario: DP bira JAK kandidat (refren) umesto dva slaba kandidata istog broja', () => {
-  // 10s pesma. Refren na 5000ms savršeno deli pesmu na dve scene od po 5000ms (= preferredAverageSceneDuration,
-  // penalty=0). Dva slaba kandidata (3000, 7000) bi dali gore trajanja I nižu sumu skorova (10+10=20 << 100).
   const candidates = [
     { timeMs: 3000, type: 'regular_beat' },
     { timeMs: 5000, type: 'chorus_start' },
@@ -36,6 +34,20 @@ test('prva scena UVEK počinje na 0, poslednja UVEK na stvarnom trajanju (bez ob
   assert.strictEqual(scenes[scenes.length - 1].endMs, 15000);
 });
 
+test('jak kandidat unutar 250ms od početka NE SME da zameni obavezni song_start', () => {
+  const { scenes } = planScenes(10000, [{ timeMs: 100, type: 'chorus_start' }, { timeMs: 5000, type: 'section_start' }], {});
+  assert.strictEqual(scenes[0].startMs, 0);
+  const validation = validateTimeline(scenes, 10000);
+  assert.strictEqual(validation.valid, true, JSON.stringify(validation.problems));
+});
+
+test('jak kandidat unutar 250ms od kraja NE SME da zameni obavezni song_end', () => {
+  const { scenes } = planScenes(10000, [{ timeMs: 5000, type: 'section_start' }, { timeMs: 9900, type: 'chorus_start' }], {});
+  assert.strictEqual(scenes[scenes.length - 1].endMs, 10000);
+  const validation = validateTimeline(scenes, 10000);
+  assert.strictEqual(validation.valid, true, JSON.stringify(validation.problems));
+});
+
 test('bez ijednog kandidata (prazan niz) i dalje vraća validan timeline (cela pesma kao jedna scena)', () => {
   const { scenes } = planScenes(8000, [], {});
   assert.strictEqual(scenes.length, 1);
@@ -46,7 +58,7 @@ test('bez ijednog kandidata (prazan niz) i dalje vraća validan timeline (cela p
 test('rezultat UVEK prolazi stroge timeline-validator.js provere', () => {
   const candidates = [
     { timeMs: 2200, type: 'downbeat' }, { timeMs: 4800, type: 'verse_start' },
-    { timeMs: 9100, type: 'chorus_start' }, { timeMs: 9150, type: 'downbeat' }, // klaster blizu refrena
+    { timeMs: 9100, type: 'chorus_start' }, { timeMs: 9150, type: 'downbeat' },
     { timeMs: 14000, type: 'bridge_start' }, { timeMs: 17200, type: 'section_start' },
     { timeMs: 20500, type: 'final_chorus_start' }, { timeMs: 26000, type: 'strong_onset' }
   ];
@@ -73,7 +85,7 @@ test('preferredSceneCount i editingIntensity se prihvataju bez greške i utiču 
 test('klasterovani kandidati blizu jedan drugom (npr. downbeat + section_start u istom trenutku) ne stvaraju mikro-scenu', () => {
   const candidates = [
     { timeMs: 5000, type: 'section_start' },
-    { timeMs: 5080, type: 'downbeat' } // 80ms razlike — isti trenutak za praktične svrhe
+    { timeMs: 5080, type: 'downbeat' }
   ];
   const { scenes } = planScenes(10000, candidates, { minimumSceneDuration: 1000, maximumSceneDuration: 9000 });
   const hasMicroScene = scenes.some(s => s.durationMs < 500);
@@ -83,6 +95,16 @@ test('klasterovani kandidati blizu jedan drugom (npr. downbeat + section_start u
 test('nevalidno totalDurationMs baca jasnu grešku umesto tihog pada', () => {
   assert.throws(() => planScenes(-5, [], {}), /pozitivan broj/);
   assert.throws(() => planScenes(NaN, [], {}), /pozitivan broj/);
+});
+
+test('nevalidan kandidat sa NaN timeMs se odbija umesto da pokvari sort/DP', () => {
+  assert.throws(() => planScenes(10000, [{ timeMs: NaN, type: 'downbeat' }], {}), /konačan timeMs/);
+});
+
+test('nevalidna scene-duration podešavanja se odbijaju jasnom greškom', () => {
+  assert.throws(() => planScenes(10000, [], { preferredAverageSceneDuration: 0 }), /preferredAverageSceneDuration/);
+  assert.throws(() => planScenes(10000, [], { minimumSceneDuration: 9000, maximumSceneDuration: 1000 }), /minimumSceneDuration/);
+  assert.throws(() => planScenes(10000, [], { editingIntensity: 'haos' }), /editingIntensity/);
 });
 
 console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
