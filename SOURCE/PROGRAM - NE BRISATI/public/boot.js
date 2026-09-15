@@ -1,8 +1,6 @@
 'use strict';
 
-// Ovaj mali lokalni fajl se učitava pre svih CDN biblioteka.
-// Launcher odmah dobija potvrdu da je browser otvorio Studio, a zatim se učitava
-// dodatni v15.6 UI koji povezuje novi audio/lyrics backend bez diranja starog app.js toka.
+// Lokalni bootstrap: heartbeat prema desktop serveru + učitavanje novih v15.6 korisničkih panela.
 (() => {
   function createId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -21,11 +19,7 @@
   async function heartbeat() {
     if (closeSent) return;
     try {
-      await fetch(`/api/app/heartbeat?id=${encodeURIComponent(clientId)}`, {
-        method: 'POST',
-        cache: 'no-store',
-        keepalive: true
-      });
+      await fetch(`/api/app/heartbeat?id=${encodeURIComponent(clientId)}`, { method:'POST', cache:'no-store', keepalive:true });
     } catch (_) {}
   }
 
@@ -35,31 +29,31 @@
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     const url = `/api/app/close?id=${encodeURIComponent(clientId)}`;
     try {
-      if (navigator.sendBeacon) navigator.sendBeacon(url, new Blob(['{}'], { type: 'application/json' }));
-      else fetch(url, {
-        method: 'POST',
-        keepalive: true,
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}'
-      }).catch(() => {});
+      if (navigator.sendBeacon) navigator.sendBeacon(url, new Blob(['{}'], { type:'application/json' }));
+      else fetch(url, { method:'POST', keepalive:true, headers:{ 'Content-Type':'application/json' }, body:'{}' }).catch(() => {});
     } catch (_) {}
   }
 
-  function loadCompletionUi() {
-    if (document.querySelector('script[data-mss-completion-ui]')) return;
+  function loadScript(src, marker) {
+    if (document.querySelector(`script[${marker}]`)) return;
     const script = document.createElement('script');
-    script.src = '/completion-ui.js';
+    script.src = src;
     script.defer = true;
-    script.dataset.mssCompletionUi = '1';
-    script.onerror = () => console.error('[MSS] completion-ui.js nije učitan.');
+    script.setAttribute(marker, '1');
+    script.onerror = () => console.error(`[MSS] ${src} nije učitan.`);
     document.head.appendChild(script);
+  }
+
+  function loadCompletionUi() {
+    loadScript('/completion-ui.js', 'data-mss-completion-ui');
+    loadScript('/workflow-tools-ui.js', 'data-mss-workflow-tools-ui');
   }
 
   window.__MSS_BROWSER_CLIENT_ID__ = clientId;
   heartbeat();
   heartbeatTimer = setInterval(heartbeat, 4000);
-  window.addEventListener('pagehide', closeSession, { capture: true });
-  window.addEventListener('beforeunload', closeSession, { capture: true });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadCompletionUi, { once: true });
+  window.addEventListener('pagehide', closeSession, { capture:true });
+  window.addEventListener('beforeunload', closeSession, { capture:true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadCompletionUi, { once:true });
   else loadCompletionUi();
 })();
