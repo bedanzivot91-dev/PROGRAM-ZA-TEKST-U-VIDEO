@@ -96,7 +96,15 @@ async function run() {
     show:false,
     width:1440,
     height:900,
-    webPreferences:{ sandbox:true, contextIsolation:true, nodeIntegration:false, webSecurity:true, allowRunningInsecureContent:false }
+    webPreferences:{
+      preload:path.join(ROOT, 'desktop', 'preload.js'),
+      sandbox:true,
+      contextIsolation:true,
+      nodeIntegration:false,
+      webSecurity:true,
+      allowRunningInsecureContent:false,
+      spellcheck:false
+    }
   });
 
   win.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
@@ -105,7 +113,7 @@ async function run() {
   win.webContents.on('render-process-gone', (_event, details) => hardErrors.push(`render-process-gone: ${details?.reason || 'unknown'}`));
   win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
     const text = String(message || '');
-    if (level >= 3 || /uncaught|referenceerror|typeerror|syntaxerror|nije učitan/i.test(text)) hardErrors.push(`console[${level}] ${text} (${sourceId || ''}:${line || 0})`);
+    if (level >= 3 || /uncaught|referenceerror|typeerror|syntaxerror|nije učitan|preload/i.test(text)) hardErrors.push(`console[${level}] ${text} (${sourceId || ''}:${line || 0})`);
   });
 
   mark('attach Chromium Profiler');
@@ -122,7 +130,7 @@ async function run() {
   const mounted = await waitFor(`(() => document.readyState === 'complete' && document.getElementById('mss-completion-launcher') && document.getElementById('mss-workflow-launcher'))()`);
   if (!mounted) fail('Renderer nije montirao completion/workflow UI u roku.');
 
-  mark('exercise live DOM and API');
+  mark('exercise live DOM, preload and API');
   const live = await timeout(win.webContents.executeJavaScript(`(async () => {
     const healthResponse = await fetch('/health', { cache:'no-store' });
     const health = await healthResponse.json();
@@ -133,8 +141,15 @@ async function run() {
     const completionPanel = document.getElementById('mss-completion-panel');
     const workflowPanel = document.getElementById('mss-workflow-panel');
     return {
-      readyState:document.readyState, healthOk:Boolean(health?.ok), healthVersion:health?.version || '',
-      browserClientId:String(window.__MSS_BROWSER_CLIENT_ID__ || ''), completionMounted:Boolean(completion), workflowMounted:Boolean(workflow),
+      readyState:document.readyState,
+      healthOk:Boolean(health?.ok),
+      healthVersion:health?.version || '',
+      desktopBridge:Boolean(window.mssDesktop),
+      desktopIsElectron:Boolean(window.mssDesktop?.isElectron),
+      desktopAppVersion:String(window.mssDesktop?.appVersion || ''),
+      desktopPlatform:String(window.mssDesktop?.platform || ''),
+      browserClientId:String(window.__MSS_BROWSER_CLIENT_ID__ || ''),
+      completionMounted:Boolean(completion), workflowMounted:Boolean(workflow),
       completionOpen:Boolean(completionPanel?.classList.contains('open')), workflowOpen:Boolean(workflowPanel?.classList.contains('open')),
       completionProjectList:Boolean(document.getElementById('mss-cu-projects')), workflowProjectSelect:Boolean(document.getElementById('mss-workflow-project')),
       dynamicScripts:{ completion:Boolean(document.querySelector('script[data-mss-completion-ui]')), workflow:Boolean(document.querySelector('script[data-mss-workflow-tools-ui]')) },
@@ -145,6 +160,9 @@ async function run() {
   if (live.readyState !== 'complete') fail(`Renderer readyState=${live.readyState}`);
   if (!live.healthOk) fail('Renderer fetch /health nije vratio ok=true.');
   if (!/^15\.6$/.test(live.healthVersion)) fail(`Renderer vidi neočekivanu server verziju ${live.healthVersion}.`);
+  if (!live.desktopBridge || !live.desktopIsElectron) fail('Sandboxed preload nije izložio window.mssDesktop most.');
+  if (live.desktopAppVersion !== '15.6.1') fail(`Preload appVersion=${live.desktopAppVersion || 'prazno'}, očekivano 15.6.1.`);
+  if (!live.desktopPlatform) fail('Preload nije izložio desktop platformu.');
   if (!live.browserClientId) fail('boot.js nije postavio __MSS_BROWSER_CLIENT_ID__.');
   if (!live.completionMounted || !live.workflowMounted) fail('Novi UI launcheri nisu montirani.');
   if (!live.completionOpen || !live.workflowOpen) fail('Klik na UI launchere nije otvorio oba panela.');
@@ -164,9 +182,9 @@ async function run() {
   if (serious.length) fail(`Renderer je prijavio ozbiljne greške:\n${serious.join('\n')}`);
 
   console.log('== Chromium renderer runtime probe ==');
-  console.log(`[OK] Live DOM: ${JSON.stringify(live)}`);
+  console.log(`[OK] Live DOM/preload: ${JSON.stringify(live)}`);
   console.log(`[OK] Precise coverage: ${JSON.stringify(coverage)}`);
-  console.log('[OK] Nema renderer crash/load/uncaught JS grešaka u probnom toku.');
+  console.log('[OK] Nema renderer crash/load/preload/uncaught JS grešaka u probnom toku.');
 }
 
 run().then(async () => {
