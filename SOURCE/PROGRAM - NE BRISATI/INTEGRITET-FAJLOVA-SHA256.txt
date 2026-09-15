@@ -1,5 +1,5 @@
 MUZIČKI SPOT STUDIO FREE 15.6.1 — SHA-256 INTEGRITET
-Ovaj manifest kontroliše sve isporučene SOURCE fajlove osim samog manifesta, runtime podataka, tokena, logova, node_modules, dist i privremenih coverage podataka.
+Ovaj manifest kontroliše sve isporučene SOURCE fajlove osim samog manifesta, runtime podataka, tokena, logova, generisanih Python cache fajlova, node_modules, dist i privremenih coverage podataka.
 Format: SHA256 + dva razmaka + putanja od SOURCE foldera.
 
 0e89bae9696020b6fa65b9f7f7e9df222161851ada83230b194d0c7d5df89a6d  .gitignore
@@ -123,7 +123,6 @@ a319118c9c47fa76d6e8c5a5ff1c6ca3d28fc8554e251078db44f7d1170326a7  PROGRAM - NE B
 9af21a4eea91551ce178b85754f9c2b9b34847b6f4d77736c2eab7db77bdc6ac  PROGRAM - NE BRISATI/text-video-tools.js
 504f9ceccb94fd028c70e09a4193b4f86d9a630963871b9807bf2947d9e795a8  PROGRAM - NE BRISATI/timeline-validator.js
 b94567638cf98b040f87fabc006e130387ad25052a6642ea2b7e7d62a6fe1151  PROGRAM - NE BRISATI/tool-runner.js
-7413ee8a7ba412d575473f782161c8c063c1d015c5a06e8957d474de90a93223  PROGRAM - NE BRISATI/tools/__pycache__/music_analyzer.cpython-314.pyc
 59534efcc263eee6f00ed8d849f2daba738fda4831aa666c79aea4eb24b047c9  PROGRAM - NE BRISATI/tools/faster-whisper-helper.py
 c5c2895457e7ef81d41df6931619fdb6cb9629bfe5254e876d268685045cb76d  PROGRAM - NE BRISATI/tools/INSTALIRAJ-DEMUCS-LITE.ps1
 f279d257d064e2e75e466ed8c4674f47e4ab251b3ebe25140a81e59564a6ef37  PROGRAM - NE BRISATI/tools/INSTALIRAJ-FASTER-WHISPER-LITE.ps1
@@ -150,7 +149,7 @@ fa13f89d46f1d47fa2a8849ca0358a05f06e1c5ca29eb3daa8a85bd02a977038  PROGRAM - NE B
 5754134fb7761f94317378b203966fb12243b60021a0521707d62d9900693b28  PROGRAM - NE BRISATI/visual-diversity-validator.js
 d082dc0c6c883e88ca9f8d95605c595c38ffee270f6b7f3355bd47aa74f5f2b1  PROGRAM - NE BRISATI/wardrobe-registry.js
 c0ff77b29e4ae95fe73aa276d641c14fccb53fa2b275f8a9eb151fcff6c129bc  README.md
-1146caf2a292612ff7cd7b67ad9175a85dd23744395fd220d29c941837b3c02b  scripts/generate-integrity-manifest.js
+94ad6d9eb93c167f0f42a7687fc75b49744bb18b6ac0a613f1af525bae87c7f9  scripts/generate-integrity-manifest.js
 3f4ce9862da5fcc691f82f86584b277b7167a29f3d5854601699488b190c249d  STA-JE-ISPRAVLJENO-I-STA-JOS-NEDOSTAJE-v15.3.txt
 9c736ec698a230ed9c912a4be2a845b01d7a78db27d129727c0dfeb2661c2a39  TEST-IZVESTAJ-MUZICKI-SPOT-STUDIO-15.3.txt
 82027e648869d5cc6934c2d818ef481f41bb76a921202f23aa0669729d0ef42b  TEST-REPORT-v15.4.md
@@ -167,7 +166,7 @@ ce918e84a67037e73e8f59d279ae0494251409df15d269c1ddb4de0ee169545c  tests/test-aud
 d3453e7bbb8059655617b0f1c34f75f64dccb0909504364b3f39ecd624ea3a21  tests/test-bridge-error-message.js
 40097c511f96b1455bd85f794895480fd9c272d308d5b31ee95e1a43f84dee50  tests/test-bridge-prompts.js
 36c3f73f2ee120bb4aff00724967b6f6d2211a5edb41762f5395bbd45f766d0a  tests/test-cors.js
-d4421bf9a5dd46973b5ead36055fa78723bfc184e15133ceb48954fcc0cb92a3  tests/test-deep-audit.js
+7394c1f0c7b73770ca4de7cb72e4d457cf141f719dd60a5c2d459c2a83c92aed  tests/test-deep-audit.js
 8c4ffe2b924dd08727287f4b5e4c6cf4dd727e9a88a65dd73de33e670bf358c1  tests/test-electron.js
 960f9d0f8b38683b621a575dd54f0184e7ed40e093bcbc05b500e56e384d1326  tests/test-extension-identity.js
 276bb70f6e6b4ff263c5129121f92e2e7a0a79caea2ad4082b54ca973a2a59e4  tests/test-extension-stabilizer.js
@@ -178,7 +177,7 @@ d6c207d6395b3959ab59d1cbff7fe1c5951e98f19c1efa88ddda77b453e3b02a  tests/test-kar
 fb41fc52e05a8ed45b1882049d81bf4b0c4365d768bc47b1f8b4bc7391a74854  tests/test-location-registry.js
 b18f0ddf15767653cf05c17c380eb872b724fd0ed6ac812b49aeb57385618632  tests/test-locked-identity-server-sync.js
 a073166dd7caae24aa9eceeee7c018d0ee959801fd572885ed5a69cd1d3575f3  tests/test-locked-identity.js
-7ffcf6cb56023bb23c15909bcc88708fb3b769f154134beebf55a1b987994468  tests/test-lyrics-alignment.js
+ea7a68e6bc0e66b11a46936ca48639c7efd63e47cbb9a358f4a8a4dbb8776cb5  tests/test-lyrics-alignment.js
 8a5813c593c52ddd33918962b713de76da0da341befb902af23ca12996b55b54  tests/test-lyrics-line-breaker.js
 53d84ff756dc031f47df88795c546a4109601749a2b2512bc101c14708fed7d6  tests/test-lyrics-overlay-api.js
 135e3fca9c92a620db5a0819fcdb71afbd2bc5228c1bf0ec7a307412ccbf7975  tests/test-lyrics-overlay-storage.js
