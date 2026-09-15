@@ -9,11 +9,12 @@ on:
       - "SOURCE/**"
       - "INSTALIRAJ-PROGRAM.bat"
       - "SASTAVI-PROGRAM.bat"
+      - "SASTAVI-PROGRAM-PORTABLE.bat"
       - ".github/workflows/build-windows.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -51,6 +52,7 @@ jobs:
         run: |
           node --check "PROGRAM - NE BRISATI/public/app.js"
           node --check "PROGRAM - NE BRISATI/public/completion-ui.js"
+          node --check "PROGRAM - NE BRISATI/public/workflow-tools-ui.js"
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Node syntax check failed"
             exit $LASTEXITCODE
@@ -90,6 +92,44 @@ jobs:
           Start-Sleep -Seconds 2
           if (Test-Path $installedExe.FullName) { throw "Aplikacioni EXE je ostao posle uninstall-a." }
 
+      - name: Split package round-trip smoke test
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          function Test-SplitRoundTrip([System.IO.FileInfo]$source) {
+            $dir = Join-Path $env:RUNNER_TEMP ([IO.Path]::GetRandomFileName())
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+            $chunkSize = 9MB
+            $input = [IO.File]::OpenRead($source.FullName)
+            try {
+              $index = 1
+              $buffer = New-Object byte[] $chunkSize
+              while (($read = $input.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                $part = Join-Path $dir ("{0}.part{1:D3}" -f $source.Name, $index)
+                $output = [IO.File]::Create($part)
+                try { $output.Write($buffer, 0, $read) } finally { $output.Dispose() }
+                $index++
+              }
+            } finally { $input.Dispose() }
+            $rebuilt = Join-Path $dir ("rebuilt-" + $source.Name)
+            $out = [IO.File]::Create($rebuilt)
+            try {
+              Get-ChildItem $dir -Filter ($source.Name + '.part*') | Sort-Object Name | ForEach-Object {
+                $partIn = [IO.File]::OpenRead($_.FullName)
+                try { $partIn.CopyTo($out) } finally { $partIn.Dispose() }
+              }
+            } finally { $out.Dispose() }
+            $a = (Get-FileHash -Algorithm SHA256 $source.FullName).Hash
+            $b = (Get-FileHash -Algorithm SHA256 $rebuilt).Hash
+            if ($a -ne $b) { throw "Split/rebuild SHA-256 mismatch za $($source.Name)" }
+            Remove-Item $dir -Recurse -Force
+          }
+          $setup = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Setup-v*.exe" | Select-Object -First 1
+          $portable = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Portable-v*.exe" | Select-Object -First 1
+          if (-not $setup -or -not $portable) { throw "Setup ili Portable EXE nedostaje za split test." }
+          Test-SplitRoundTrip $setup
+          Test-SplitRoundTrip $portable
+
       - name: Upload Windows installers
         uses: actions/upload-artifact@v4
         with:
@@ -100,3 +140,54 @@ jobs:
             SOURCE/dist/*.blockmap
           if-no-files-found: error
           retention-days: 30
+
+      - name: Refresh repository INSTALLER and PORTABLE parts
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          function Write-SplitParts([System.IO.FileInfo]$source, [string]$destination) {
+            New-Item -ItemType Directory -Force -Path $destination | Out-Null
+            Get-ChildItem $destination -Filter "*.exe.part*" -ErrorAction SilentlyContinue | Remove-Item -Force
+            Get-ChildItem $destination -Filter "*.exe" -ErrorAction SilentlyContinue | Remove-Item -Force
+            $chunkSize = 9MB
+            $input = [IO.File]::OpenRead($source.FullName)
+            try {
+              $index = 1
+              $buffer = New-Object byte[] $chunkSize
+              while (($read = $input.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                $part = Join-Path $destination ("{0}.part{1:D3}" -f $source.Name, $index)
+                $output = [IO.File]::Create($part)
+                try { $output.Write($buffer, 0, $read) } finally { $output.Dispose() }
+                $index++
+              }
+            } finally { $input.Dispose() }
+          }
+          $setup = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Setup-v*.exe" | Select-Object -First 1
+          $portable = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Portable-v*.exe" | Select-Object -First 1
+          if (-not $setup -or -not $portable) { throw "Finalni Setup/Portable nisu pronađeni." }
+          Write-SplitParts $setup "INSTALLER"
+          Write-SplitParts $portable "PORTABLE"
+          $setupHash = (Get-FileHash -Algorithm SHA256 $setup.FullName).Hash.ToLowerInvariant()
+          $portableHash = (Get-FileHash -Algorithm SHA256 $portable.FullName).Hash.ToLowerInvariant()
+          $checksumText = @(
+            "PROGRAM ZA TEKST U VIDEO - TESTIRANI BUILD",
+            "Source commit: $env:GITHUB_SHA",
+            "",
+            "INSTALLER/$($setup.Name)",
+            $setupHash,
+            "",
+            "PORTABLE/$($portable.Name)",
+            $portableHash,
+            ""
+          ) -join "`r`n"
+          [IO.File]::WriteAllText((Join-Path $PWD 'CHECKSUMS-SHA256.txt'), $checksumText, [Text.UTF8Encoding]::new($false))
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add INSTALLER PORTABLE CHECKSUMS-SHA256.txt
+          if (git diff --cached --quiet) {
+            Write-Host "Repo paketi su već usklađeni sa buildom."
+          } else {
+            git commit -m "Refresh tested Windows installer and portable package"
+            git push origin HEAD:main
+          }
