@@ -1,7 +1,7 @@
 {
   "name": "muzicki-spot-studio-free",
   "productName": "Muzicki Spot Studio Free",
-  "version": "15.6.0",
+  "version": "15.6.1",
   "description": "Lokalni Windows desktop program za izradu muzičkog spota od pesme do završnog videa.",
   "private": true,
   "main": "desktop/main.js",
