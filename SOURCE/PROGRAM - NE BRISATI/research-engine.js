@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const childProcess = require('child_process');
 
-const VERSION = '15.4';
+const VERSION = '15.6';
 const APP_DIR = __dirname;
 const DATA_DIR = process.env.MSS_DATA_DIR ? path.resolve(process.env.MSS_DATA_DIR) : path.join(APP_DIR, 'data');
 const TOOLS_DIR = path.join(DATA_DIR, 'runtime', 'research');
