@@ -60,7 +60,7 @@
     "test:overlay-api": "node tests/test-lyrics-overlay-api.js",
     "test:text-video-tools": "node tests/test-text-video-tools.js",
     "test:bridge-prompts": "node tests/test-bridge-prompts.js",
-    "test:runtime-entrypoints": "node tests/test-runtime-entrypoints.js && node tests/test-final-function-coverage.js",
+    "test:runtime-entrypoints": "node tests/test-runtime-entrypoints.js && node tests/test-final-function-coverage-runner.js",
     "test:electron-bootstrap-full": "node tests/test-electron-bootstrap-full.js",
     "test:renderer-runtime": "node tests/test-renderer-runtime.js",
     "pack:win": "electron-builder --win --dir --publish never",
