@@ -28,7 +28,10 @@ function scoreForCutType(type) {
 // Kazna za trajanje scene: van [min,max] je jako kažnjeno (ali NIJE beskonačno — spec eksplicitno
 // kaže "ovo su smernice, ne slepa pravila", zato uvek postoji izvodljivo, ako i suboptimalno, rešenje).
 function durationPenalty(durationMs, settings) {
-  const { minimumSceneDuration, maximumSceneDuration, preferredAverageSceneDuration } = settings;
+  const { minimumSceneDuration, maximumSceneDuration, preferredAverageSceneDuration } = settings || {};
+  if (![durationMs, minimumSceneDuration, maximumSceneDuration, preferredAverageSceneDuration].every(Number.isFinite) || preferredAverageSceneDuration <= 0) {
+    throw new Error('ScenePlanner duration podešavanja moraju biti konačni brojevi, a preferredAverageSceneDuration mora biti > 0.');
+  }
   let penalty = 0;
   if (durationMs < minimumSceneDuration) penalty += (minimumSceneDuration - durationMs) * OUT_OF_BOUNDS_PENALTY_PER_MS / 1000;
   if (durationMs > maximumSceneDuration) penalty += (durationMs - maximumSceneDuration) * OUT_OF_BOUNDS_PENALTY_PER_MS / 1000;
@@ -40,9 +43,12 @@ function durationPenalty(durationMs, settings) {
 // Grupiše kandidate koji su vremenski veoma blizu (npr. downbeat i section_start u istom trenutku)
 // i zadržava samo najjači iz svakog klastera — sprečava da DP bira dva "reza" par milisekundi razdvojena.
 function dedupeCandidates(candidates, clusterWindowMs = 250) {
+  if (!Array.isArray(candidates)) throw new TypeError('candidates mora biti niz.');
+  if (!Number.isFinite(clusterWindowMs) || clusterWindowMs < 0) throw new Error('clusterWindowMs mora biti konačan broj >= 0.');
   const sorted = [...candidates].sort((a, b) => a.timeMs - b.timeMs);
   const result = [];
   for (const candidate of sorted) {
+    if (!candidate || !Number.isFinite(candidate.timeMs)) throw new Error('Svaki kandidat mora imati konačan timeMs.');
     const last = result[result.length - 1];
     if (last && candidate.timeMs - last.timeMs <= clusterWindowMs) {
       if (scoreForCutType(candidate.type) > scoreForCutType(last.type)) result[result.length - 1] = candidate;
@@ -54,6 +60,11 @@ function dedupeCandidates(candidates, clusterWindowMs = 250) {
 }
 
 function planScenes(totalDurationMs, rawCandidates, settings = {}) {
+  if (!Number.isFinite(totalDurationMs) || totalDurationMs <= 0) {
+    throw new Error('totalDurationMs mora biti pozitivan broj (stvarno trajanje audio-fajla).');
+  }
+  if (!Array.isArray(rawCandidates)) throw new TypeError('rawCandidates mora biti niz.');
+
   const resolvedSettings = {
     preferredAverageSceneDuration: settings.preferredAverageSceneDuration ?? 4800,
     minimumSceneDuration: settings.minimumSceneDuration ?? 1200,
@@ -61,25 +72,44 @@ function planScenes(totalDurationMs, rawCandidates, settings = {}) {
     preferredSceneCount: settings.preferredSceneCount ?? null,
     editingIntensity: settings.editingIntensity ?? 'balanced'
   };
-  const intensityMultiplier = EDITING_INTENSITY_MULTIPLIER[resolvedSettings.editingIntensity] ?? 1.0;
+  for (const key of ['preferredAverageSceneDuration', 'minimumSceneDuration', 'maximumSceneDuration']) {
+    if (!Number.isFinite(resolvedSettings[key]) || resolvedSettings[key] <= 0) throw new Error(`${key} mora biti konačan broj > 0.`);
+  }
+  if (resolvedSettings.minimumSceneDuration > resolvedSettings.maximumSceneDuration) {
+    throw new Error('minimumSceneDuration ne sme biti veći od maximumSceneDuration.');
+  }
+  if (resolvedSettings.preferredSceneCount !== null && (!Number.isInteger(resolvedSettings.preferredSceneCount) || resolvedSettings.preferredSceneCount <= 0)) {
+    throw new Error('preferredSceneCount mora biti pozitivan ceo broj ili null.');
+  }
+  if (!Object.prototype.hasOwnProperty.call(EDITING_INTENSITY_MULTIPLIER, resolvedSettings.editingIntensity)) {
+    throw new Error(`Nepoznat editingIntensity: "${resolvedSettings.editingIntensity}".`);
+  }
+
+  const intensityMultiplier = EDITING_INTENSITY_MULTIPLIER[resolvedSettings.editingIntensity];
   const effectiveSettings = { ...resolvedSettings, preferredAverageSceneDuration: resolvedSettings.preferredAverageSceneDuration * intensityMultiplier };
 
-  if (!Number.isFinite(totalDurationMs) || totalDurationMs <= 0) {
-    throw new Error('totalDurationMs mora biti pozitivan broj (stvarno trajanje audio-fajla).');
+  // GRANICE 0 i totalDurationMs su obavezne i NE SMEJU učestvovati u dedupe klasteru. Stari kod
+  // je ubacivao granice u isti klaster sa beat kandidatima, pa je jak beat na npr. 100ms mogao
+  // da zameni song_start, a beat 100ms pre kraja song_end — rezultat više nije pokrivao celu pesmu.
+  const interiorRaw = rawCandidates.filter((candidate, index) => {
+    if (!candidate || !Number.isFinite(candidate.timeMs)) throw new Error(`Kandidat ${index} nema konačan timeMs.`);
+    return candidate.timeMs > 0 && candidate.timeMs < totalDurationMs;
+  });
+  const interiorCandidates = dedupeCandidates(interiorRaw);
+  if (!interiorCandidates.length) {
+    return {
+      scenes: [{ sceneId: 'scene-001', number: 1, startMs: 0, endMs: totalDurationMs, durationMs: totalDurationMs, cutReason: 'no_candidates_full_song' }],
+      settings: effectiveSettings,
+      totalScore: -durationPenalty(totalDurationMs, effectiveSettings)
+    };
   }
 
-  const withBoundaries = [
+  const candidates = [
     { timeMs: 0, type: 'song_start' },
-    ...rawCandidates.filter(c => c.timeMs > 0 && c.timeMs < totalDurationMs),
+    ...interiorCandidates,
     { timeMs: totalDurationMs, type: 'song_end' }
   ];
-  const candidates = dedupeCandidates(withBoundaries);
   const n = candidates.length;
-
-  if (n < 2) {
-    return { scenes: [{ sceneId: 'scene-001', number: 1, startMs: 0, endMs: totalDurationMs, durationMs: totalDurationMs, cutReason: 'no_candidates_full_song' }], settings: effectiveSettings };
-  }
-
   const dp = new Array(n).fill(-Infinity);
   const backPointer = new Array(n).fill(-1);
   dp[0] = 0;
@@ -98,6 +128,9 @@ function planScenes(totalDurationMs, rawCandidates, settings = {}) {
   const path = [];
   let cursor = n - 1;
   while (cursor !== -1) { path.unshift(cursor); cursor = backPointer[cursor]; }
+  if (path[0] !== 0 || path[path.length - 1] !== n - 1) {
+    throw new Error('ScenePlanner nije uspeo da napravi putanju od početka do kraja pesme.');
+  }
 
   const scenes = [];
   for (let k = 1; k < path.length; k += 1) {
