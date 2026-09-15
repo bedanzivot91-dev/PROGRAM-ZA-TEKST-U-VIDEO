@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('assert');
 const { parseLyrics } = require('../PROGRAM - NE BRISATI/lyrics-parser');
-const { alignLyrics, alignSequences, tokenizeWords, levenshtein, wordsMatch } = require('../PROGRAM - NE BRISATI/lyrics-alignment');
+const { alignLyrics, alignSequences, tokenizeWords, levenshtein, wordsMatch, normalizeAsrToken, interpolateUnmatchedGroups } = require('../PROGRAM - NE BRISATI/lyrics-alignment');
 
 let pass = 0;
 let fail = 0;
@@ -31,11 +31,40 @@ test('L4 drugi refren', () => { assert.strictEqual(l4.startMs, 6000); assert.str
 test('ASR halucinacija ne kvari poravnanje', () => assert.strictEqual(l1.matchedWordsRatio, 1));
 test('lineId ostaje jedinstven', () => assert.notStrictEqual(l2.lineId, l4.lineId));
 test('wordsMatch fuzzy', () => { assert.strictEqual(wordsMatch('volim','volim'), true); assert.strictEqual(wordsMatch('volim','volem'), true); assert.strictEqual(wordsMatch('volim','mrzim'), false); });
-test('prazan ASR niz', () => { const r = alignLyrics(parsed.lines, [], { totalDurationMs:5000 }); assert.strictEqual(r.lines.every(x=>x.needsReview), true); assert.strictEqual(r.overallConfidence, 0); });
+test('prazan ASR niz ravnomerno deli raspoloživo trajanje između svih linija', () => {
+  const r = alignLyrics(parsed.lines, [], { totalDurationMs: 8000 });
+  assert.strictEqual(r.lines.every(x => x.needsReview), true);
+  assert.strictEqual(r.overallConfidence, 0);
+  assert.deepStrictEqual(r.lines.map(x => [x.startMs, x.endMs]), [[0,2000],[2000,4000],[4000,6000],[6000,8000]]);
+  assert.strictEqual(r.lines.every(x => x.endMs > x.startMs), true);
+});
+test('dve uzastopne nepoklopljene linije dele gap umesto da druga dobije nulto trajanje', () => {
+  const lines = [
+    { lineId:'a', text:'prva' }, { lineId:'b', text:'druga nema match' },
+    { lineId:'c', text:'treca nema match' }, { lineId:'d', text:'četvrta' }
+  ];
+  const r = alignLyrics(lines, [w('prva',0,1), w('četvrta',5,6)], { totalDurationMs:7000 });
+  assert.deepStrictEqual([r.lines[1].startMs, r.lines[1].endMs, r.lines[2].startMs, r.lines[2].endMs], [1000,3000,3000,5000]);
+});
 test('words[] vremena', () => { assert.strictEqual(l1.words.length,4); assert.deepStrictEqual(l1.words[0],{text:'sanjam',startMs:0,endMs:500,confidence:0.95}); });
 test('words[] sortiran', () => { for(let i=1;i<l2.words.length;i++) assert.ok(l2.words[i].startMs>=l2.words[i-1].startMs); });
 test('nepoklopljena linija nema izmišljene reči', () => assert.deepStrictEqual(l3.words, []));
 test('overallConfidence opada', () => { const partial=alignLyrics(parsed.lines,asrWords.slice(0,4),{totalDurationMs:9000}); assert.ok(partial.overallConfidence<result.overallConfidence); });
+
+test('normalizeAsrToken odbacuje NaN, negativne i obrnute ASR timestampove', () => {
+  assert.strictEqual(normalizeAsrToken({word:'x',start:NaN,end:1}), null);
+  assert.strictEqual(normalizeAsrToken({word:'x',start:-1,end:1}), null);
+  assert.strictEqual(normalizeAsrToken({word:'x',start:2,end:1}), null);
+  assert.deepStrictEqual(normalizeAsrToken({word:'reč',start:0,end:0.5,probability:0.8}), {word:'reč',startMs:0,endMs:500,probability:0.8});
+});
+
+test('interpolateUnmatchedGroups raspodeljuje ceo interval bez rupa', () => {
+  const rows = [
+    {startMs:null,endMs:null},{startMs:null,endMs:null},{startMs:null,endMs:null}
+  ];
+  interpolateUnmatchedGroups(rows, 3000);
+  assert.deepStrictEqual(rows.map(x => [x.startMs,x.endMs]), [[0,1000],[1000,2000],[2000,3000]]);
+});
 
 // Direktni ugovorni testovi svih pomoćnih exporta — da nijedna javna funkcija ne ostane neizvršena.
 test('tokenizeWords čuva srpska slova i uklanja interpunkciju', () => {
@@ -57,6 +86,11 @@ test('alignSequences vraća monotono LCS poravnanje', () => {
     assert.ok(matches[i].canonicalIndex > matches[i-1].canonicalIndex);
     assert.ok(matches[i].asrIndex > matches[i-1].asrIndex);
   }
+});
+
+test('alignLyrics odbija pogrešan tip ulaza jasnom greškom', () => {
+  assert.throws(() => alignLyrics(null, []), /lines mora biti niz/);
+  assert.throws(() => alignLyrics([], {}), /asrWords mora biti niz/);
 });
 
 console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
