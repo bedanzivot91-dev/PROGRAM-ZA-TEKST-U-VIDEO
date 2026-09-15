@@ -52,7 +52,14 @@ child.on('close', (code, signal) => {
   clearTimeout(timer);
   try {
     assert.strictEqual(timedOut, false, 'Renderer probe je prekoračio parent timeout.');
-    assert.match(stdout, /\[EXIT\] renderer probe code=0\b/, 'Renderer probe nije eksplicitno prijavio uspešan završetak.');
+    // Electron app.exit() može da prekine stdout pre poslednjeg cleanup loga. Zato se
+    // uspeh potvrđuje markerom koji probe ispisuje TEK nakon svih DOM/preload/API/
+    // Chromium coverage provera, a zatim se zasebno zahteva i child exit code 0.
+    assert.match(
+      stdout,
+      /\[OK\] Nema renderer crash\/load\/preload\/uncaught JS grešaka u probnom toku\./,
+      'Renderer probe nije stigao do kraja svih runtime i Chromium coverage provera.'
+    );
     assert.doesNotMatch(stdout + '\n' + stderr, /\[FAIL\]/, 'Renderer probe je prijavio [FAIL] iako child process status može biti 0.');
     assert.strictEqual(code, 0, `Renderer probe nije prošao (status=${code}, signal=${signal || 'none'}).`);
     console.log('[OK] Pravi Electron/Chromium renderer probe je završen bez greške.');
