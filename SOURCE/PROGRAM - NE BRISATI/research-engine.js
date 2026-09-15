@@ -310,7 +310,7 @@ function loadChannelDnaBase() {
 function parseDateValue(entry) {
   const timestamp = Number(entry?.timestamp || entry?.release_timestamp || 0);
   if (timestamp > 0) return new Date(timestamp * 1000);
-  const raw = clean(entry?.upload_date || entry?.release_date, 16);
+  const raw = clean(entry?.uploadDate || entry?.upload_date || entry?.releaseDate || entry?.release_date, 16);
   if (/^\d{8}$/.test(raw)) return new Date(`${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}T00:00:00Z`);
   if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return new Date(`${raw.slice(0,10)}T00:00:00Z`);
   return null;
