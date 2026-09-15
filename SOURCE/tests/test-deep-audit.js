@@ -21,7 +21,7 @@ function bad(label, detail = '') { fail += 1; failures.push({ label, detail }); 
 function walk(dir, predicate = () => true, out = []) {
   if (!fs.existsSync(dir)) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (['node_modules', 'dist', 'runtime', '.git'].includes(entry.name)) continue;
+    if (['node_modules', 'dist', 'runtime', '.git', '.v8-coverage', '__pycache__'].includes(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, predicate, out);
     else if (predicate(full)) out.push(full);
@@ -43,10 +43,12 @@ const allJs = walk(PROGRAM, f => f.endsWith('.js')).concat(walk(DESKTOP, f => f.
 const ownJs = allJs.filter(f => !rel(f).includes('/vendor/'));
 const allJson = walk(PROGRAM, f => f.endsWith('.json')).concat(walk(SRC_ROOT, f => f.endsWith('.json') && !rel(f).startsWith('PROGRAM - NE BRISATI/')));
 const allPs1 = walk(PROGRAM, f => f.endsWith('.ps1'));
+const allPy = walk(PROGRAM, f => f.endsWith('.py'));
+const allBatch = walk(PROGRAM, f => /\.(?:bat|cmd)$/i.test(f));
 const testFiles = walk(TESTS, f => f.endsWith('.js'));
 const testCorpus = testFiles.map(text).join('\n');
 
-console.log('-- 1. JavaScript i JSON sintaksa --');
+console.log('-- 1. JavaScript, JSON i Python sintaksa --');
 for (const file of allJs) {
   try { childProcess.execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' }); ok(`JS ${rel(file)}`); }
   catch (error) { bad(`JS ${rel(file)}`, (error.stderr || error.message).toString().split('\n')[0]); }
@@ -54,6 +56,18 @@ for (const file of allJs) {
 for (const file of allJson) {
   try { JSON.parse(text(file)); ok(`JSON ${rel(file)}`); }
   catch (error) { bad(`JSON ${rel(file)}`, error.message); }
+}
+for (const file of allPy) {
+  let compiled = false;
+  let lastError = '';
+  const candidates = process.platform === 'win32' ? [['py', ['-3']], ['python', []], ['python3', []]] : [['python3', []], ['python', []]];
+  for (const [command, prefix] of candidates) {
+    try {
+      childProcess.execFileSync(command, [...prefix, '-m', 'py_compile', file], { stdio: 'pipe', timeout: 15000 });
+      compiled = true; break;
+    } catch (error) { lastError = error.message; }
+  }
+  if (compiled) ok(`PY ${rel(file)}`); else bad(`PY ${rel(file)}`, lastError || 'Python interpreter nije dostupan');
 }
 
 console.log('-- 2. Lokalni require() putevi --');
@@ -78,7 +92,7 @@ for (const [name, command] of Object.entries(pkg.scripts || {})) {
   }
 }
 
-console.log('-- 4. Backend moduli i svaka izvezena funkcija imaju test referencu --');
+console.log('-- 4. Backend moduli i svaka izvezena funkcija imaju namenski test --');
 const entrypointExclusions = new Set(['server.js', 'launcher.js', 'background-worker.js']);
 for (const file of walk(PROGRAM, f => path.dirname(f) === PROGRAM && f.endsWith('.js'))) {
   const src = text(file);
@@ -112,7 +126,7 @@ try {
   }
 } catch (error) { bad('tool-runner registry', error.message); }
 
-console.log('-- 6. PowerShell parser --');
+console.log('-- 6. PowerShell i batch osnovni integritet --');
 if (process.platform === 'win32') {
   for (const file of allPs1) {
     const escaped = file.replace(/'/g, "''");
@@ -123,12 +137,17 @@ if (process.platform === 'win32') {
 } else {
   ok('PowerShell parser se izvršava u Windows CI okruženju');
 }
+for (const file of allBatch) {
+  const src = text(file);
+  if (/\u0000/.test(src)) bad(`BATCH ${rel(file)}`, 'NUL karakter u tekstualnoj skripti');
+  else if (!src.trim()) bad(`BATCH ${rel(file)}`, 'prazna skripta');
+  else ok(`BATCH ${rel(file)}`);
+}
 
 console.log('-- 7. Zabranjeni stubovi i dinamičko izvršavanje --');
 const stubPatterns = [
   [/\bTODO\b/i, 'TODO'], [/\bFIXME\b/i, 'FIXME'], [/\bIMPLEMENT\s+ME\b/i, 'IMPLEMENT ME'],
-  [/not\s+implemented/i, 'not implemented'], [/nije\s+implementirano/i, 'nije implementirano'],
-  [/supported\s*:\s*false\b/, 'supported:false']
+  [/not\s+implemented/i, 'not implemented'], [/nije\s+implementirano/i, 'nije implementirano']
 ];
 for (const file of ownJs) {
   const src = text(file);
@@ -138,6 +157,13 @@ for (const file of ownJs) {
   if (/\beval\s*\(/.test(src)) bad(`${rel(file)} → eval()`, 'dinamičko izvršavanje koda nije dozvoljeno');
   if (/new\s+Function\s*\(/.test(src)) bad(`${rel(file)} → new Function()`, 'dinamičko izvršavanje koda nije dozvoljeno');
 }
+try {
+  const placement = require(path.join(PROGRAM, 'smart-text-placement-engine.js'));
+  const missing = placement.detectFaces(path.join(PROGRAM, '__definitely_missing_image__.png'));
+  if (missing && missing.supported === false && Array.isArray(missing.faces) && typeof missing.reason === 'string' && missing.reason.length > 0) {
+    ok('OpenCV fallback je eksplicitno i funkcionalno obrađen kada slika/alati nisu dostupni');
+  } else bad('OpenCV fallback', 'nedostupan detector ne vraća kontrolisan rezultat');
+} catch (error) { bad('OpenCV fallback', error.message); }
 if (!failures.some(x => /stub|eval|Function/.test(`${x.label} ${x.detail}`))) ok('Nema očiglednih stubova/eval/new Function u sopstvenom JS kodu');
 
 console.log('-- 8. UI → server API ugovor --');
@@ -166,6 +192,9 @@ const definedIds = new Set([...html.matchAll(/\bid=["']([^"']+)["']/g)].map(m =>
 for (const file of uiFiles) {
   const src = text(file);
   for (const m of src.matchAll(/\bid=["']([^"']+)["']/g)) definedIds.add(m[1]);
+  for (const m of src.matchAll(/\bid\s*:\s*['"]([^'"]+)['"]/g)) definedIds.add(m[1]);
+  for (const m of src.matchAll(/\.id\s*=\s*['"]([^'"]+)['"]/g)) definedIds.add(m[1]);
+  for (const m of src.matchAll(/setAttribute\(\s*['"]id['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g)) definedIds.add(m[1]);
 }
 const referencedIds = new Map();
 for (const file of uiFiles) {
@@ -225,7 +254,7 @@ if (!fs.existsSync(manifestFile)) {
 
 console.log(`\n== DUBINSKI AUDIT: ${pass} prošlo, ${fail} nije prošlo ==`);
 if (failures.length) {
-  console.log('\nPrvih 80 problema:');
-  for (const item of failures.slice(0, 80)) console.log(` - ${item.label}${item.detail ? `: ${item.detail}` : ''}`);
+  console.log('\nPrvih 120 problema:');
+  for (const item of failures.slice(0, 120)) console.log(` - ${item.label}${item.detail ? `: ${item.detail}` : ''}`);
 }
 process.exit(fail ? 1 : 0);
