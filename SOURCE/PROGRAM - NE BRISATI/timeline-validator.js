@@ -13,10 +13,34 @@ function validateTimeline(scenes, actualAudioDurationMs) {
     return { valid: false, problems: ['Timeline nema nijednu scenu.'] };
   }
 
+  if (!Number.isFinite(actualAudioDurationMs) || actualAudioDurationMs <= 0) {
+    problems.push(`Stvarno trajanje audio-fajla nije validno (${actualAudioDurationMs}).`);
+  }
+
+  // NaN/Infinity ne smeju doći do sortiranja: comparator sa NaN vraća NaN (efektivno 0),
+  // a kasnije Math.abs(NaN) i poređenja sa NaN tiho propuštaju nevalidan timeline.
+  const malformedIndexes = new Set();
+  scenes.forEach((scene, index) => {
+    if (!scene || typeof scene !== 'object') {
+      problems.push(`Scena ${index} nije validan objekat.`);
+      malformedIndexes.add(index);
+      return;
+    }
+    if (!Number.isFinite(scene.startMs) || !Number.isFinite(scene.endMs)) {
+      problems.push(`Scena ${scene.sceneId || index} nema validne konačne startMs/endMs vrednosti.`);
+      malformedIndexes.add(index);
+    }
+    if (scene.durationMs !== undefined && scene.durationMs !== null && !Number.isFinite(scene.durationMs)) {
+      problems.push(`Scena ${scene.sceneId || index} ima nevalidan durationMs (${scene.durationMs}).`);
+      malformedIndexes.add(index);
+    }
+  });
+  if (malformedIndexes.size) return { valid: false, problems };
+
   const sorted = [...scenes].sort((a, b) => a.startMs - b.startMs);
 
   const first = sorted[0];
-  if (Math.abs(first.startMs - 0) > ROUNDING_TOLERANCE_MS) {
+  if (Math.abs(first.startMs) > ROUNDING_TOLERANCE_MS) {
     problems.push(`Prva scena ne počinje na 0ms (startMs=${first.startMs}).`);
   }
 
