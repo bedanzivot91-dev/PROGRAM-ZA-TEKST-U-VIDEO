@@ -6,18 +6,51 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Get-StudioListeningPorts {
+  try {
+    $ports = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners() |
+      Where-Object { $_.Port -ge 4180 -and $_.Port -le 4239 } |
+      Select-Object -ExpandProperty Port -Unique
+    return @($ports | Sort-Object)
+  } catch {
+    return @()
+  }
+}
+
+function Test-StudioHealthPort([int]$Port) {
+  try {
+    $health = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -Method Get -TimeoutSec 1
+    if ($health.ok -eq $true -and $health.app -eq 'Muzički Spot Studio FREE') {
+      return [pscustomobject]@{ Port=$Port; Health=$health }
+    }
+  } catch {}
+  return $null
+}
+
 function Wait-StudioHealth([int]$TimeoutSeconds = 60) {
   $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  $lastCandidateLog = [datetime]::MinValue
   while ((Get-Date) -lt $deadline) {
-    foreach ($port in 4180..4239) {
-      try {
-        $health = Invoke-RestMethod -Uri "http://127.0.0.1:$port/health" -Method Get -TimeoutSec 1
-        if ($health.ok -eq $true -and $health.app -eq 'Muzički Spot Studio FREE') {
-          return [pscustomobject]@{ Port=$port; Health=$health }
-        }
-      } catch {}
+    # Portable electron-builder EXE prvo raspakuje aplikaciju u TEMP i zato može
+    # potrajati više sekundi pre nego što uopšte otvori port. Stari test je posle
+    # neuspelog 4180 pokušaja serijski čekao do 1 s na još 59 portova i mogao je
+    # da potroši ceo timeout pre nego što se vrati na 4180. Ovde se proveravaju
+    # samo portovi koji su stvarno u LISTEN stanju, uz 4180 kao brz prioritet.
+    $priority = Test-StudioHealthPort 4180
+    if ($priority) { return $priority }
+
+    $listening = @(Get-StudioListeningPorts | Where-Object { $_ -ne 4180 })
+    foreach ($port in $listening) {
+      if ((Get-Date) -ge $deadline) { break }
+      $probe = Test-StudioHealthPort $port
+      if ($probe) { return $probe }
     }
-    Start-Sleep -Milliseconds 300
+
+    if ($listening.Count -gt 0 -and ((Get-Date) - $lastCandidateLog).TotalSeconds -ge 5) {
+      Write-Host "[INFO] Aktivni Studio-opseg portovi: $(@(4180) + $listening -join ', ')"
+      $lastCandidateLog = Get-Date
+    }
+    Start-Sleep -Milliseconds 200
   }
   throw "Muzički Spot Studio nije odgovorio na /health ni na jednom portu 4180-4239 u roku od $TimeoutSeconds s."
 }
@@ -46,7 +79,7 @@ function Assert-StudioVersion($Probe, [string]$Label) {
 }
 
 function Write-PackagedDiagnostics([string]$Label, [System.Diagnostics.Process]$Process, [string]$InstallRoot) {
-  Write-Host "`n===== PACKAGED EXE DIAGNOSTIKA: $Label ====="
+  Write-Host "`n===== PACKAGED EXE DIJAGNOSTIKA: $Label ====="
   if ($Process) {
     try {
       $Process.Refresh()
