@@ -20,9 +20,22 @@ function isOwnedBackend(file) {
   return (insideProgram || insideDesktop) && file.endsWith('.js');
 }
 function rel(file) { return path.relative(ROOT, file).replace(/\\/g, '/'); }
+function expectedProductionFiles() {
+  const rootModules = fs.readdirSync(PROGRAM, { withFileTypes: true })
+    .filter(e => e.isFile() && e.name.endsWith('.js'))
+    .map(e => path.join(PROGRAM, e.name))
+    .filter(file => {
+      const src = fs.readFileSync(file, 'utf8');
+      return /module\.exports\s*=/.test(src) || ['server.js', 'launcher.js', 'background-worker.js'].includes(path.basename(file));
+    });
+  const desktop = fs.readdirSync(DESKTOP, { withFileTypes: true })
+    .filter(e => e.isFile() && e.name.endsWith('.js'))
+    .map(e => path.join(DESKTOP, e.name));
+  return [...new Set([...rootModules, ...desktop])].sort();
+}
 
 if (!fs.existsSync(COVERAGE_DIR)) {
-  console.error('[FAIL] .v8-coverage folder ne postoji. Pokreni npm test sa NODE_V8_COVERAGE=.v8-coverage');
+  console.error('[FAIL] .v8-coverage folder ne postoji. Pokreni backend testove sa NODE_V8_COVERAGE=.v8-coverage');
   process.exit(1);
 }
 
@@ -42,11 +55,20 @@ for (const name of fs.readdirSync(COVERAGE_DIR)) {
       const key = `${fn.functionName || '<anonymous>'}:${outer.startOffset}:${outer.endOffset}`;
       const previous = fnMap.get(key);
       const count = Number(outer.count || 0);
-      if (!previous || count > previous.count) fnMap.set(key, { name: fn.functionName || '<anonymous>', count, startOffset: outer.startOffset, endOffset: outer.endOffset });
+      if (!previous || count > previous.count) {
+        fnMap.set(key, {
+          name: fn.functionName || '<anonymous>',
+          count,
+          startOffset: outer.startOffset,
+          endOffset: outer.endOffset
+        });
+      }
     }
   }
 }
 
+const expected = expectedProductionFiles();
+const missingFiles = expected.filter(file => !merged.has(file));
 let files = 0;
 let functions = 0;
 let covered = 0;
@@ -62,21 +84,29 @@ for (const [file, fnMap] of [...merged.entries()].sort(([a], [b]) => a.localeCom
 }
 
 console.log('== V8 FUNCTION COVERAGE AUDIT ==');
-console.log(`Backend/Electron fajlova sa coverage podacima: ${files}`);
-console.log(`Imenovanih funkcija: ${functions}`);
+console.log(`Očekivanih produkcionih backend/Electron fajlova: ${expected.length}`);
+console.log(`Fajlova sa coverage podacima: ${files}`);
+console.log(`Očekivani fajlovi koji uopšte nisu učitani: ${missingFiles.length}`);
+console.log(`Imenovanih funkcija u učitanim fajlovima: ${functions}`);
 console.log(`Izvršeno u testovima: ${covered}`);
-console.log(`Neizvršeno: ${uncovered.length}`);
+console.log(`Učitano ali neizvršeno: ${uncovered.length}`);
 
+let failed = false;
 if (!files || !functions) {
-  console.error('[FAIL] Coverage nije prikupio backend funkcije.');
-  process.exit(1);
+  console.error('[FAIL] Coverage nije prikupio backend/Electron funkcije.');
+  failed = true;
 }
-
+if (missingFiles.length) {
+  console.error('\n[FAIL] Produkcioni fajlovi koje nijedan instrumentovani test nije ni učitao:');
+  for (const file of missingFiles) console.error(` - ${rel(file)}`);
+  failed = true;
+}
 if (uncovered.length) {
-  console.error('\n[FAIL] Funkcije koje nijedan test nije izvršio:');
-  for (const item of uncovered.slice(0, 200)) console.error(` - ${item.file} :: ${item.name} @${item.start}`);
-  if (uncovered.length > 200) console.error(` ... i još ${uncovered.length - 200}`);
-  process.exit(1);
+  console.error('\n[FAIL] Imenovane funkcije koje nijedan instrumentovani test nije izvršio:');
+  for (const item of uncovered.slice(0, 300)) console.error(` - ${item.file} :: ${item.name} @${item.start}`);
+  if (uncovered.length > 300) console.error(` ... i još ${uncovered.length - 300}`);
+  failed = true;
 }
 
-console.log('[OK] Svaka imenovana backend/Electron funkcija zabeležena u V8 coverage-u izvršena je najmanje jednom.');
+if (failed) process.exit(1);
+console.log('[OK] Svaki očekivani backend/Electron modul je učitan i svaka imenovana funkcija iz V8 coverage-a izvršena je najmanje jednom.');
