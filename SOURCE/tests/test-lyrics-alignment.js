@@ -38,9 +38,9 @@ test('nepoklopljena linija nema izmišljene reči', () => assert.deepStrictEqual
 test('overallConfidence opada', () => { const partial=alignLyrics(parsed.lines,asrWords.slice(0,4),{totalDurationMs:9000}); assert.ok(partial.overallConfidence<result.overallConfidence); });
 
 // Direktni ugovorni testovi svih pomoćnih exporta — da nijedna javna funkcija ne ostane neizvršena.
-test('tokenizeWords normalizuje interpunkciju i dijakritiku', () => {
+test('tokenizeWords čuva srpska slova i uklanja interpunkciju', () => {
   const tokens = tokenizeWords('  Volim, te!  Noćas. ');
-  assert.deepStrictEqual(tokens, ['volim','te','nocas']);
+  assert.deepStrictEqual(tokens, ['volim','te','noćas']);
 });
 test('levenshtein proverava osnovne distance i prazne stringove', () => {
   assert.strictEqual(levenshtein('volim','volim'),0);
