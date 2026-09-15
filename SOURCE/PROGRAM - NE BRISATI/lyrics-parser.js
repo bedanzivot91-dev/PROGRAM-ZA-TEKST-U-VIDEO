@@ -11,15 +11,12 @@ const SECTION_TYPE_ALIASES = {
   'pre chorus': 'pre-chorus'
 };
 
-// Ravni i Unicode apostrofi (' ʼ ` ´) se tretiraju kao isti karakter interno.
 const APOSTROPHE_PATTERN = /[‘’ʼ`´]/g;
 
 function normalizeApostrophes(text) {
-  return String(text || '').replace(APOSTROPHE_PATTERN, "'");
+  return String(text ?? '').replace(APOSTROPHE_PATTERN, "'");
 }
 
-// Interna normalizacija za poređenje: mala slova, jedan razmak, bez interpunkcije osim apostrofa,
-// i "al'" svedeno na "ali" da se prepozna kao ista reč u poređenju ponovljenih delova.
 function normalizeForComparison(text) {
   return normalizeApostrophes(text)
     .toLowerCase()
@@ -30,7 +27,7 @@ function normalizeForComparison(text) {
 }
 
 function parseTagLine(line) {
-  const trimmed = line.trim();
+  const trimmed = String(line ?? '').trim();
   const match = trimmed.match(/^\[([^\]]+)\]$/);
   if (!match) return null;
   const inner = match[1].trim();
@@ -39,24 +36,24 @@ function parseTagLine(line) {
   return { raw: inner, type: resolvedType, isStructural: KNOWN_SECTION_TYPES.has(resolvedType) };
 }
 
-// Dodatni tagovi u istoj liniji kao section tag, npr. "[Chorus][Pop][Powerful][Male]",
-// se razdvajaju na strukturni tag (prvi) i genre/emotivne tagove (ostatak).
+// Prihvata i spojene i razmaknute tagove: [Chorus][Pop] i [Chorus] [Pop]. Stari dodatni
+// tags.join('') uslov je pogrešno odbijao razmak između zagrada i pretvarao ceo tag-red u stih.
 function splitMultiTagLine(line) {
-  const trimmed = line.trim();
+  const trimmed = String(line ?? '').trim();
   const tags = [...trimmed.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim());
-  if (!tags.length || tags.join('') !== trimmed.replace(/[[\]]/g, '')) return null;
-  if (trimmed.replace(/\[[^\]]+\]/g, '').trim()) return null; // ima teksta van zagrada, nije tag linija
+  if (!tags.length) return null;
+  if (trimmed.replace(/\[[^\]]+\]/g, '').trim()) return null;
   return tags;
 }
 
 function parseLyrics(rawText) {
-  const original = String(rawText || '');
+  const original = String(rawText ?? '');
   const lines = original.split(/\r\n|\r|\n/);
 
   const sections = [];
   const allLines = [];
   let currentSection = null;
-  let sectionCounter = {};
+  const sectionCounter = {};
   let globalLineIndex = 0;
 
   function openSection(type, rawLabel, extraTags) {
@@ -85,7 +82,6 @@ function parseLyrics(rawText) {
         globalLineIndex += 1;
         continue;
       }
-      // sve su ne-strukturni tagovi (npr. samo [Pop][Powerful]) — dodaju se na trenutnu sekciju
       if (currentSection) currentSection.tags.push(...multiTags);
       globalLineIndex += 1;
       continue;
@@ -117,8 +113,6 @@ function parseLyrics(rawText) {
     globalLineIndex += 1;
   }
 
-  // Prepoznaje ponovljene refrene (i druge ponovljene sekcije) po normalizovanom sadržaju,
-  // ali svaka instanca ostaje poseban objekat sa svojim id-jem (chorus-1, chorus-2, ...).
   const sectionSignatures = new Map();
   for (const section of sections) {
     const text = section.lineIds
@@ -155,4 +149,4 @@ function parseLyrics(rawText) {
   };
 }
 
-module.exports = { parseLyrics, normalizeForComparison, normalizeApostrophes };
+module.exports = { parseLyrics, normalizeForComparison, normalizeApostrophes, parseTagLine, splitMultiTagLine };
