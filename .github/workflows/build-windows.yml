@@ -31,6 +31,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+        with:
+          node-version: 22
+          cache: npm
           cache-dependency-path: SOURCE/package-lock.json
 
       - name: Install FFmpeg
@@ -157,6 +160,24 @@ jobs:
         shell: pwsh
         working-directory: ${{ github.workspace }}
         run: |
+          # Build može da traje nekoliko minuta. Ako je main u međuvremenu napredovao,
+          # paketi se smeju preneti samo ako je SOURCE stablo i dalje potpuno isto kao
+          # ono iz kog su EXE fajlovi upravo izgrađeni i testirani.
+          git fetch origin main
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $builtSourceTree = (git rev-parse "${env:GITHUB_SHA}:SOURCE").Trim()
+          $latestSourceTree = (git rev-parse "origin/main:SOURCE").Trim()
+          if ($builtSourceTree -ne $latestSourceTree) {
+            throw "main SOURCE je promenjen tokom builda. Odbijam da objavim zastarele pakete; noviji main build će ih napraviti."
+          }
+          # Ukloni samo lokalne tracked izmene nastale tokom builda; dist ostaje netaknut
+          # jer je generisan/ignorisan. Zatim bezbedno prenesi ovaj završni package commit
+          # na trenutno najnoviji main.
+          git reset --hard $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git rebase origin/main
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
           function Write-SplitParts([System.IO.FileInfo]$source, [string]$destination) {
             New-Item -ItemType Directory -Force -Path $destination | Out-Null
             Get-ChildItem $destination -Filter "*.exe.part*" -ErrorAction SilentlyContinue | Remove-Item -Force
@@ -201,5 +222,7 @@ jobs:
             Write-Host "Repo paketi su već usklađeni sa buildom."
           } else {
             git commit -m "Refresh tested v15.6.1 Windows packages"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             git push origin HEAD:main
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
