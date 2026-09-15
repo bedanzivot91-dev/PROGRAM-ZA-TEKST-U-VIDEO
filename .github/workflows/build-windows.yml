@@ -44,6 +44,21 @@ jobs:
       - name: Synchronize package-lock version metadata
         run: npm version 15.6.1 --no-git-tag-version --allow-same-version
 
+      - name: Commit synchronized lockfile on repair branch
+        if: startsWith(github.ref, 'refs/heads/chatgpt/')
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add SOURCE/package-lock.json
+          if (git diff --cached --quiet) {
+            Write-Host "package-lock.json je već sinhronizovan."
+          } else {
+            git commit -m "Synchronize package-lock metadata for v15.6.1"
+            git push origin HEAD:${{ github.ref_name }}
+          }
+
       - name: Install dependencies
         run: npm ci
 
@@ -188,10 +203,10 @@ jobs:
           [IO.File]::WriteAllText((Join-Path $PWD 'CHECKSUMS-SHA256.txt'), $checksumText, [Text.UTF8Encoding]::new($false))
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add SOURCE/package-lock.json INSTALLER PORTABLE CHECKSUMS-SHA256.txt
+          git add INSTALLER PORTABLE CHECKSUMS-SHA256.txt
           if (git diff --cached --quiet) {
-            Write-Host "Repo paketi i lockfile su već usklađeni sa buildom."
+            Write-Host "Repo paketi su već usklađeni sa buildom."
           } else {
-            git commit -m "Refresh tested v15.6.1 Windows packages and lock metadata"
+            git commit -m "Refresh tested v15.6.1 Windows packages"
             git push origin HEAD:main
           }
