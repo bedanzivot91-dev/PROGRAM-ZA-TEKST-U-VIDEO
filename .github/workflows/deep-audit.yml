@@ -47,6 +47,17 @@ jobs:
           npm audit fix
           npm audit --audit-level=high
 
+      - name: Synchronize runtime versions on deep-audit branch
+        if: startsWith(github.ref, 'refs/heads/chatgpt/deep-audit-')
+        working-directory: SOURCE
+        shell: pwsh
+        run: node scripts/sync-runtime-versions.js
+
+      - name: Verify runtime versions
+        working-directory: SOURCE
+        shell: pwsh
+        run: node scripts/sync-runtime-versions.js --check
+
       - name: Production dependency security audit
         working-directory: SOURCE
         shell: pwsh
@@ -64,24 +75,26 @@ jobs:
         shell: pwsh
         run: node scripts/generate-integrity-manifest.js --write
 
-      - name: Commit synchronized dependencies and manifest on deep-audit branch
+      - name: Commit synchronized dependencies, runtime versions and manifest on deep-audit branch
         if: startsWith(github.ref, 'refs/heads/chatgpt/deep-audit-')
         shell: pwsh
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "SOURCE/package.json" "SOURCE/package-lock.json" "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
+          git add "SOURCE/package.json" "SOURCE/package-lock.json" "SOURCE/PROGRAM - NE BRISATI/background-worker.js" "SOURCE/PROGRAM - NE BRISATI/launcher.js" "SOURCE/PROGRAM - NE BRISATI/server.js" "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
           if (git diff --cached --quiet) {
-            Write-Host "Dependencies i integrity manifest su već sinhronizovani."
+            Write-Host "Dependencies, runtime verzije i integrity manifest su već sinhronizovani."
           } else {
-            git commit -m "Synchronize audited dependencies and v15.6.1 integrity manifest"
+            git commit -m "Synchronize audited dependencies runtime versions and v15.6.1 integrity manifest"
             git push origin HEAD:${{ github.ref_name }}
           }
 
       - name: Verify main/PR manifest is committed and current
         if: ${{ !startsWith(github.ref, 'refs/heads/chatgpt/deep-audit-') }}
         shell: pwsh
-        run: git diff --exit-code -- "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
+        run: |
+          git diff --exit-code -- "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
+          node scripts/sync-runtime-versions.js --check
 
       - name: Deep static and structural audit
         id: deep_audit
