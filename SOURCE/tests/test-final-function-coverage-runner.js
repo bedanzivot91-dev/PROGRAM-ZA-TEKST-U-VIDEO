@@ -41,6 +41,79 @@ if (!localReqPattern.test(source)) {
 }
 source = source.replace(localReqPattern, "const localReq = { headers:{host:'127.0.0.1:' + port}, socket:{remoteAddress:'127.0.0.1', encrypted:false} };");
 
+// Preostali server helperi moraju stvarno da se izvrše, ne samo da postoje u fajlu.
+const hookTail = "'saveIdeaHistory','validateIdeaResearch','validateTenCreativeIdeas','customGptInstructions','openApiSchema'";
+if (!source.includes(hookTail)) throw new Error('Server hook tail marker nije pronađen.');
+source = source.replace(hookTail, "'saveIdeaHistory','validateIdeaResearch','validateTenCreativeIdeas','customGptInstructions','openApiSchema','spawnAndForget','browserExecutableCandidates','waitForBrowserConnection'");
+
+const browserOpenedMarker = "    ok(opened && opened.path, 'server openPlusBridgeExtensionFolder izvršen bez stvarnog otvaranja browsera');";
+if (!source.includes(browserOpenedMarker)) throw new Error('Browser helper marker nije pronađen.');
+source = source.replace(browserOpenedMarker, `${browserOpenedMarker}
+    ok(t.spawnAndForget(process.execPath, ['-e','process.exit(0)']) === true, 'server spawnAndForget izvršen');
+    ok(Array.isArray(t.browserExecutableCandidates()), 'server browserExecutableCandidates izvršen');
+    await t.waitForBrowserConnection(1);
+    ok(true, 'server waitForBrowserConnection izvršen');`);
+
+// Stari coverage URL nije gađao stvarnu overlay export rutu pa su inline srt/vtt/ass/json
+// callback-i ostajali neizvršeni iako je test prihvatao 404. Gađamo pravu rutu i tražimo 200.
+const oldOverlayRoute = '`/api/audio-projects/${projectId}/text-tracks/${trackId}/export?format=${format}`';
+const newOverlayRoute = '`/api/audio-projects/${projectId}/lyrics-overlay/export?trackId=${encodeURIComponent(trackId)}&format=${format}`';
+if (!source.includes(oldOverlayRoute)) throw new Error('Overlay export route marker nije pronađen.');
+source = source.replace(oldOverlayRoute, newOverlayRoute);
+const looseOverlayAssert = "ok(response.status >= 200 && response.status < 600, `server inline overlay exporter ${format} izvršen`);";
+if (!source.includes(looseOverlayAssert)) throw new Error('Overlay export assertion marker nije pronađen.');
+source = source.replace(looseOverlayAssert, "ok(response.status === 200, `server inline overlay exporter ${format} izvršen`);");
+
+// recommendation avg helper se izvršava samo kada postoji bar jedan video.
+const recommendationMarker = "  ok(Array.isArray(t.recommendations([])) && Array.isArray(t.publicTrendRecommendations([])), 'server recommendation helperi izvršeni');";
+if (!source.includes(recommendationMarker)) throw new Error('Recommendation marker nije pronađen.');
+source = source.replace(recommendationMarker, `  const recommendationSample = [{duration:60,averageViewPercentage:72,title:'EMOTIVNA LJUBAV VIDEO',views:1000}];
+  ok(t.recommendations(recommendationSample).length > 0 && Array.isArray(t.publicTrendRecommendations([])), 'server recommendation helperi i avg izvršeni');
+
+  // Obe YouTube Analytics rute definišu lokalni date() helper. Pravimo bezbedan test token
+  // u test-only secure storage-u i mockujemo Google transport da obe rute prođu do date().
+  const previousCryptoProvider = process.env.MSS_TEST_CRYPTO_PROVIDER;
+  process.env.MSS_TEST_CRYPTO_PROVIDER = 'fallback';
+  const advancedToolsForYoutube = require(path.join(PROGRAM, 'advanced-tools.js'));
+  advancedToolsForYoutube.writeSecureJson(advancedToolsForYoutube.secureFile('youtube-channels'), {
+    channels:[{id:'coverage-channel',title:'Coverage kanal',accessToken:'coverage-token',expiresAt:Date.now()+3600000}]
+  });
+  const analyticsFetch = global.fetch;
+  global.fetch = async requestUrl => {
+    const href = String(requestUrl);
+    if (href.includes('youtubeanalytics.googleapis.com/v2/reports')) {
+      return new Response(JSON.stringify({columnHeaders:[],rows:[]}), {status:200,headers:{'content-type':'application/json'}});
+    }
+    return new Response(JSON.stringify({items:[]}), {status:200,headers:{'content-type':'application/json'}});
+  };
+  try {
+    const analyzeResponse = await httpJson(port, 'POST', '/api/youtube/analyze', {channelId:'coverage-channel',days:7});
+    ok(analyzeResponse.status === 200, 'server YouTube analyze ruta i lokalni date helper izvršeni');
+    const retentionResponse = await httpJson(port, 'POST', '/api/youtube/retention', {channelId:'coverage-channel',videoId:'coverage-video',days:7});
+    ok(retentionResponse.status === 200, 'server YouTube retention ruta i lokalni date helper izvršeni');
+  } finally {
+    global.fetch = analyticsFetch;
+    if (previousCryptoProvider === undefined) delete process.env.MSS_TEST_CRYPTO_PROVIDER;
+    else process.env.MSS_TEST_CRYPTO_PROVIDER = previousCryptoProvider;
+  }`);
+
+// Cancellation callbacks u sva tri Python provider-a moraju biti stvarno izvršeni.
+const stemCall = "    const stems = await stemMod.separateStems(audio, 'coverage-stem-hash');";
+if (!source.includes(stemCall)) throw new Error('Stem coverage marker nije pronađen.');
+source = source.replace(stemCall, `    const stemAbort = new AbortController();
+    stemAbort.abort();
+    const stems = await stemMod.separateStems(audio, 'coverage-stem-hash', {signal:stemAbort.signal});`);
+const transcriptionCall = "    const tr = await trMod.transcribeAudio(audio, 'coverage-transcription-hash', {model:'tiny'});";
+if (!source.includes(transcriptionCall)) throw new Error('Transcription coverage marker nije pronađen.');
+source = source.replace(transcriptionCall, `    const transcriptionAbort = new AbortController();
+    transcriptionAbort.abort();
+    const tr = await trMod.transcribeAudio(audio, 'coverage-transcription-hash', {model:'tiny',signal:transcriptionAbort.signal});`);
+const analysisCall = "    const ma = await maMod.analyzeMusic(audio, 'coverage-analysis-hash');";
+if (!source.includes(analysisCall)) throw new Error('Music analysis coverage marker nije pronađen.');
+source = source.replace(analysisCall, `    const analysisAbort = new AbortController();
+    analysisAbort.abort();
+    const ma = await maMod.analyzeMusic(audio, 'coverage-analysis-hash', {signal:analysisAbort.signal});`);
+
 // Nijedan lokalni HTTP test ne sme da visi zauvek. Regex namerno prihvata LF i CRLF
 // jer GitHub Windows checkout može da promeni fizički završetak reda.
 const httpErrorPattern = /(\s+req\.on\('error', reject\);\s*)(if \(payload\) req\.write\(payload\);)/m;
