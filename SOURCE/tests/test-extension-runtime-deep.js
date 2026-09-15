@@ -124,10 +124,9 @@ async function testPopup() {
 
 async function testChatGptBridgePureLogic() {
   let source = fs.readFileSync(path.join(EXT, 'chatgpt-bridge.js'), 'utf8');
-  const marker = '\nbuildPanel();\n';
-  if (!source.includes(marker)) throw new Error('chatgpt-bridge bootstrap marker nije pronađen');
-  source = source.replace(marker, `\nglobalThis.__MSS_BRIDGE_TEST__ = { extractJsonObject, removePossibleIdentityPrefix, enforceLockedIdentityInAnswer, promptRequirements, validResearchSources, validatePromptScenes, validateAnswerForJob, jobLabel };\n`);
-  source = source.replace(/setInterval\(\(\) => refreshJob[\s\S]*$/m, '');
+  const bootstrap = /\r?\nbuildPanel\(\);[\s\S]*$/;
+  if (!bootstrap.test(source)) throw new Error('chatgpt-bridge bootstrap blok nije pronađen');
+  source = source.replace(bootstrap, `\nglobalThis.__MSS_BRIDGE_TEST__ = { extractJsonObject, removePossibleIdentityPrefix, enforceLockedIdentityInAnswer, promptRequirements, validResearchSources, validatePromptScenes, validateAnswerForJob, jobLabel };\n`);
   const context = vm.createContext({
     chrome:{ runtime:{ sendMessage:()=>{} }, storage:{ local:{ get:()=>{}, set:()=>{} } } },
     document:{}, window:{}, navigator:{ clipboard:{} }, location:{ hostname:'chatgpt.com', pathname:'/g/g-6a62e905ca608191be135254d6f2fbcc', href:'https://chatgpt.com/g/g-6a62e905ca608191be135254d6f2fbcc' },
