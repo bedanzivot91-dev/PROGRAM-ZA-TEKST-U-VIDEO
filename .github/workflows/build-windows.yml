@@ -41,6 +41,9 @@ jobs:
           ffmpeg -version
           ffprobe -version
 
+      - name: Synchronize package-lock version metadata
+        run: npm version 15.6.1 --no-git-tag-version --allow-same-version
+
       - name: Install dependencies
         run: npm ci
 
@@ -53,6 +56,7 @@ jobs:
           node --check "PROGRAM - NE BRISATI/public/app.js"
           node --check "PROGRAM - NE BRISATI/public/completion-ui.js"
           node --check "PROGRAM - NE BRISATI/public/workflow-tools-ui.js"
+          node --check "desktop/main.js"
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Node syntax check failed"
             exit $LASTEXITCODE
@@ -76,8 +80,8 @@ jobs:
       - name: Silent NSIS install and uninstall smoke test
         shell: pwsh
         run: |
-          $setup = Get-ChildItem -Path dist -Filter "Muzicki-Spot-Studio-Free-Setup-v*.exe" | Select-Object -First 1
-          if (-not $setup) { throw "NSIS setup EXE nije pronađen." }
+          $setup = Get-ChildItem -Path dist -Filter "Muzicki-Spot-Studio-Free-Setup-v15.6.1.exe" | Select-Object -First 1
+          if (-not $setup) { throw "NSIS setup v15.6.1 EXE nije pronađen." }
           $installDir = Join-Path $env:RUNNER_TEMP "MSS-Installed"
           if (Test-Path $installDir) { Remove-Item $installDir -Recurse -Force }
           $proc = Start-Process -FilePath $setup.FullName -ArgumentList "/S", "/D=$installDir" -Wait -PassThru
@@ -124,16 +128,16 @@ jobs:
             if ($a -ne $b) { throw "Split/rebuild SHA-256 mismatch za $($source.Name)" }
             Remove-Item $dir -Recurse -Force
           }
-          $setup = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Setup-v*.exe" | Select-Object -First 1
-          $portable = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Portable-v*.exe" | Select-Object -First 1
-          if (-not $setup -or -not $portable) { throw "Setup ili Portable EXE nedostaje za split test." }
+          $setup = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Setup-v15.6.1.exe" | Select-Object -First 1
+          $portable = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Portable-v15.6.1.exe" | Select-Object -First 1
+          if (-not $setup -or -not $portable) { throw "Setup ili Portable v15.6.1 EXE nedostaje za split test." }
           Test-SplitRoundTrip $setup
           Test-SplitRoundTrip $portable
 
       - name: Upload Windows installers
         uses: actions/upload-artifact@v4
         with:
-          name: Muzicki-Spot-Studio-Free-Windows-v15.6.0
+          name: Muzicki-Spot-Studio-Free-Windows-v15.6.1
           path: |
             SOURCE/dist/*.exe
             SOURCE/dist/*.yml
@@ -163,15 +167,15 @@ jobs:
               }
             } finally { $input.Dispose() }
           }
-          $setup = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Setup-v*.exe" | Select-Object -First 1
-          $portable = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Portable-v*.exe" | Select-Object -First 1
-          if (-not $setup -or -not $portable) { throw "Finalni Setup/Portable nisu pronađeni." }
+          $setup = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Setup-v15.6.1.exe" | Select-Object -First 1
+          $portable = Get-ChildItem SOURCE/dist -Filter "Muzicki-Spot-Studio-Free-Portable-v15.6.1.exe" | Select-Object -First 1
+          if (-not $setup -or -not $portable) { throw "Finalni v15.6.1 Setup/Portable nisu pronađeni." }
           Write-SplitParts $setup "INSTALLER"
           Write-SplitParts $portable "PORTABLE"
           $setupHash = (Get-FileHash -Algorithm SHA256 $setup.FullName).Hash.ToLowerInvariant()
           $portableHash = (Get-FileHash -Algorithm SHA256 $portable.FullName).Hash.ToLowerInvariant()
           $checksumText = @(
-            "PROGRAM ZA TEKST U VIDEO - TESTIRANI BUILD",
+            "PROGRAM ZA TEKST U VIDEO v15.6.1 - TESTIRANI BUILD",
             "Source commit: $env:GITHUB_SHA",
             "",
             "INSTALLER/$($setup.Name)",
@@ -184,10 +188,10 @@ jobs:
           [IO.File]::WriteAllText((Join-Path $PWD 'CHECKSUMS-SHA256.txt'), $checksumText, [Text.UTF8Encoding]::new($false))
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add INSTALLER PORTABLE CHECKSUMS-SHA256.txt
+          git add SOURCE/package-lock.json INSTALLER PORTABLE CHECKSUMS-SHA256.txt
           if (git diff --cached --quiet) {
-            Write-Host "Repo paketi su već usklađeni sa buildom."
+            Write-Host "Repo paketi i lockfile su već usklađeni sa buildom."
           } else {
-            git commit -m "Refresh tested Windows installer and portable package"
+            git commit -m "Refresh tested v15.6.1 Windows packages and lock metadata"
             git push origin HEAD:main
           }
