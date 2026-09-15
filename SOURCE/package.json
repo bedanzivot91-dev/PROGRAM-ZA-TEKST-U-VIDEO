@@ -15,7 +15,7 @@
     "test:electron": "node tests/test-electron.js",
     "test:contracts": "node tests/test-module-contracts.js",
     "test:advanced-deep": "node tests/test-advanced-tools-deep.js",
-    "test:core-gaps": "node tests/test-coverage-gaps-core.js",
+    "test:core-gaps": "node tests/test-coverage-gaps-core.js && node tests/test-research-engine-deep.js",
     "test:lyrics": "node tests/test-lyrics-parser.js",
     "test:alignment": "node tests/test-lyrics-alignment.js",
     "test:audio-probe": "node tests/test-audio-probe.js",
