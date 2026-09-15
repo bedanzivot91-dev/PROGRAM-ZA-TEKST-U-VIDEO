@@ -45,6 +45,10 @@ test('createCue sa niskim confidence automatski dobija needsReview=true', () => 
   assert.strictEqual(cue.needsReview, true);
 });
 
+test('createCue odbija words koji nije niz umesto tihog gubitka karaoke podataka', () => {
+  assert.throws(() => createCue({ trackId: 't1', startMs: 0, endMs: 1000, text: 'x', words: 'nije-niz' }), /words mora biti niz/);
+});
+
 test('validateCue odbija endMs <= startMs', () => {
   const cue = createCue({ trackId: 't1', startMs: 5000, endMs: 5000, text: 'x' });
   const result = validateCue(cue);
@@ -67,11 +71,21 @@ test('validateCue prihvata cue koji je unutar trajanja', () => {
 test('validateCue odbija reč čije vreme izlazi van granica cue-a', () => {
   const cue = createCue({
     trackId: 't1', startMs: 1000, endMs: 2000, text: 'reč',
-    words: [{ text: 'reč', startMs: 500, endMs: 900 }] // pre pocetka cue-a
+    words: [{ text: 'reč', startMs: 500, endMs: 900 }]
   });
   const result = validateCue(cue);
   assert.strictEqual(result.valid, false);
   assert.ok(result.problems.some(p => p.includes('van granica')));
+});
+
+test('validateCue odbija NaN/missing word timing umesto da ga propusti kao validan', () => {
+  const cue = createCue({
+    trackId: 't1', startMs: 1000, endMs: 2000, text: 'reč',
+    words: [{ text: 'reč', startMs: undefined, endMs: 1500 }]
+  });
+  const result = validateCue(cue);
+  assert.strictEqual(result.valid, false);
+  assert.ok(result.problems.some(p => p.includes('validne startMs/endMs')));
 });
 
 test('validateTrack agregira probleme iz svih NEOBRISANIH cue-ova', () => {
@@ -82,6 +96,12 @@ test('validateTrack agregira probleme iz svih NEOBRISANIH cue-ova', () => {
   const result = validateTrack(track);
   assert.strictEqual(result.valid, false);
   assert.strictEqual(result.problems.length, 1);
+});
+
+test('validateTrack odbija neispravan track/cues umesto TypeError rušenja', () => {
+  const result = validateTrack({ trackId: 'track-x', cues: null });
+  assert.strictEqual(result.valid, false);
+  assert.ok(result.problems.some(p => p.includes('cues niz')));
 });
 
 test('validateTrack IGNORIŠE soft-deleted cue-ove', () => {
@@ -104,7 +124,18 @@ test('createStyle prihvata override-ove bez gubljenja ostalih podrazumevanih vre
   const style = createStyle({ name: 'Moj Stil', color: { mode: 'solid', solid: '#FF0000', opacity: 1 } });
   assert.strictEqual(style.name, 'Moj Stil');
   assert.strictEqual(style.color.solid, '#FF0000');
-  assert.strictEqual(style.font.family, 'Inter'); // ostatak i dalje podrazumevan
+  assert.strictEqual(style.font.family, 'Inter');
+});
+
+test('createStyle DEEPLY spaja parcijalni nested override i ne briše weight/fallback/opacity', () => {
+  const style = createStyle({ font: { family: 'Georgia' }, color: { solid: '#00FF00' }, shadow: { blur: 12 } });
+  assert.strictEqual(style.font.family, 'Georgia');
+  assert.strictEqual(style.font.weight, 700);
+  assert.strictEqual(style.font.fallback, 'Arial');
+  assert.strictEqual(style.color.solid, '#00FF00');
+  assert.strictEqual(style.color.opacity, 1);
+  assert.strictEqual(style.shadow.blur, 12);
+  assert.strictEqual(style.shadow.enabled, true);
 });
 
 console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
