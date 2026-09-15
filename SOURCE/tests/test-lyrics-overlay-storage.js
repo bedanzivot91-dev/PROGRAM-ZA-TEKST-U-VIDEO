@@ -1,7 +1,5 @@
 'use strict';
-// Testira lyrics-overlay-storage.js — sekcija 22 dodatka (project.json.lyricsOverlay referentni
-// blok + projects/PROJECT_ID/lyrics/overlay-tracks.json). STVARNO piše na disk (ne mock),
-// isti obrazac kao test-project-backup.js/test-audio-projects-integration.js.
+// Testira lyrics-overlay-storage.js — stvaran disk, bez mock-a.
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -11,6 +9,7 @@ process.env.MSS_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'mss-lyrics-ove
 
 const audioProjects = require('../PROGRAM - NE BRISATI/audio-projects');
 const overlayStorage = require('../PROGRAM - NE BRISATI/lyrics-overlay-storage');
+const projectBackup = require('../PROGRAM - NE BRISATI/project-backup');
 
 let pass = 0;
 let fail = 0;
@@ -82,14 +81,14 @@ test('updateCueInTrack odbija izmenu koja bi napravila nevalidan cue', () => {
   assert.throws(() => overlayStorage.updateCueInTrack(project.projectId, trackId, cueId, { endMs: 500 }), /nije validan/);
 });
 
-test('softDeleteCue OZNAČAVA cue kao obrisan (ne uklanja ga fizički) i smanjuje aktivan cueCount', () => {
+test('softDeleteCue OZNAČAVA cue kao obrisan i smanjuje aktivan cueCount', () => {
   overlayStorage.softDeleteCue(project.projectId, trackId, cueId);
   const tracks = overlayStorage.listTextTracks(project.projectId);
   const cue = tracks[0].cues.find(c => c.cueId === cueId);
   assert.strictEqual(cue.deleted, true);
   assert.ok(cue.deletedAt);
   const updatedProject = audioProjects.getProject(project.projectId);
-  assert.strictEqual(updatedProject.lyricsOverlay.cueCount, 0, 'obrisan cue se ne broji u aktivan cueCount');
+  assert.strictEqual(updatedProject.lyricsOverlay.cueCount, 0);
 });
 
 test('restoreCue VRAĆA soft-deleted cue bez regenerisanja bilo čega', () => {
@@ -106,11 +105,42 @@ test('validateProjectOverlay agregira validaciju svih track-ova projekta', () =>
   assert.strictEqual(result.tracks.length, 1);
 });
 
+let deleteBackupName;
 test('deleteTextTrackForProject pravi backup PRE brisanja i stvarno uklanja track', () => {
   overlayStorage.deleteTextTrackForProject(project.projectId, trackId);
   assert.deepStrictEqual(overlayStorage.listTextTracks(project.projectId), []);
-  const backups = require('../PROGRAM - NE BRISATI/project-backup').listProjectBackups(audioProjects.projectDir(project.projectId));
-  assert.ok(backups.some(b => b.reason === 'before_delete_text_track'));
+  const backups = projectBackup.listProjectBackups(audioProjects.projectDir(project.projectId));
+  const backup = backups.find(item => item.reason === 'before_delete_text_track');
+  assert.ok(backup);
+  deleteBackupName = backup.fileName;
+});
+
+test('VRATI PRETHODNU VERZIJU vraća i fizički obrisani overlay track/cue sadržaj', () => {
+  audioProjects.restoreProjectBackup(project.projectId, deleteBackupName);
+  const tracks = overlayStorage.listTextTracks(project.projectId);
+  assert.strictEqual(tracks.length, 1);
+  assert.strictEqual(tracks[0].trackId, trackId);
+  assert.strictEqual(tracks[0].cues.length, 1);
+  assert.strictEqual(tracks[0].cues[0].cueId, cueId);
+});
+
+test('oštećen overlay-tracks.json se NE tretira kao prazan niz i NE sme biti tiho prepisan', () => {
+  const file = overlayStorage.overlayTracksFile(project.projectId);
+  const validBefore = fs.readFileSync(file, 'utf8');
+  fs.writeFileSync(file, '{BROKEN JSON', 'utf8');
+  assert.throws(
+    () => overlayStorage.listTextTracks(project.projectId),
+    error => error && error.code === 'OVERLAY_CORRUPTED'
+  );
+  assert.strictEqual(fs.readFileSync(file, 'utf8'), '{BROKEN JSON');
+  // vrati validan sadržaj za ostale testove
+  fs.writeFileSync(file, validBefore, 'utf8');
+});
+
+test('overlayCorruptedError daje stabilan kod greške', () => {
+  const error = overlayStorage.overlayCorruptedError('test');
+  assert.strictEqual(error.code, 'OVERLAY_CORRUPTED');
+  assert.ok(error.message.includes('test'));
 });
 
 test('addCueToTrack baca grešku za nepostojeći trackId', () => {
