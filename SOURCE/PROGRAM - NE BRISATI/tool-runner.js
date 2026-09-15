@@ -1,21 +1,16 @@
 'use strict';
 
-// Pokreće tools/*.ps1 instalacione skripte kao pozadinski posao sa uhvaćenim izlazom, umesto da
-// otvara sirov, vidljiv PowerShell prozor bez ikakve povratne informacije programu. Samo za
-// skripte koje NE traže unos tokom rada (Read-Host) — te skripte ne blokiraju kad je ulaz
-// prazan/zatvoren, PowerShell bez konzole vraća prazan string i nastavlja dalje.
-
+// Pokreće tools/*.ps1 instalacione skripte kao pozadinski posao sa uhvaćenim izlazom.
 const fs = require('fs');
 const path = require('path');
 const childProcess = require('child_process');
 
 const APP_DIR = __dirname;
-const SCRIPTS_DIR = path.join(APP_DIR, 'tools'); // izvorne .ps1 skripte, isporučuju se sa programom (samo za čitanje)
+const SCRIPTS_DIR = path.join(APP_DIR, 'tools');
 const DATA_DIR = process.env.MSS_DATA_DIR ? path.resolve(process.env.MSS_DATA_DIR) : path.join(APP_DIR, 'data');
-const RUNTIME_DIR = path.join(DATA_DIR, 'runtime'); // upisiva lokacija za preuzete binarne alate (ffmpeg, RIFE, itd.)
+const RUNTIME_DIR = path.join(DATA_DIR, 'runtime');
 const MAX_LOG_LINES = 800;
 
-// id -> { name, script, category }. Samo skripte bez obaveznog unosa tokom instalacije.
 const TOOL_REGISTRY = {
   ffmpeg: { name: 'FFmpeg (portable)', script: 'INSTALIRAJ-FFMPEG-LITE.ps1', category: 'render' },
   hyperframes: { name: 'HyperFrames CLI', script: 'INSTALIRAJ-HYPERFRAMES.ps1', category: 'render' },
@@ -24,10 +19,11 @@ const TOOL_REGISTRY = {
   rife: { name: 'RIFE (interpolacija)', script: 'INSTALIRAJ-RIFE-LITE.ps1', category: 'video' },
   'faster-whisper': { name: 'Faster-Whisper (transkripcija)', script: 'INSTALIRAJ-FASTER-WHISPER-LITE.ps1', category: 'titlovi' },
   demucs: { name: 'Demucs (odvajanje vokala/instrumentala)', script: 'INSTALIRAJ-DEMUCS-LITE.ps1', category: 'audio' },
-  librosa: { name: 'Librosa (BPM/energija/analiza pesme)', script: 'INSTALIRAJ-LIBROSA-LITE.ps1', category: 'audio' }
+  librosa: { name: 'Librosa (BPM/energija/analiza pesme)', script: 'INSTALIRAJ-LIBROSA-LITE.ps1', category: 'audio' },
+  'opencv-face': { name: 'OpenCV (detekcija lica)', script: 'INSTALIRAJ-OPENCV-FACE-LITE.ps1', category: 'tekst' }
 };
 
-const jobs = new Map(); // toolId -> { status, log:[], startedAt, endedAt, exitCode, child }
+const jobs = new Map();
 
 function isInstalledMarker(toolId) {
   const markers = {
@@ -38,7 +34,8 @@ function isInstalledMarker(toolId) {
     hyperframes: path.join(RUNTIME_DIR, 'engines', 'hyperframes', 'node_modules'),
     pyscenedetect: path.join(RUNTIME_DIR, 'pyscenedetect-venv'),
     demucs: path.join(RUNTIME_DIR, 'demucs-lite', 'venv'),
-    librosa: path.join(RUNTIME_DIR, 'librosa-lite', 'venv')
+    librosa: path.join(RUNTIME_DIR, 'librosa-lite', 'venv'),
+    'opencv-face': path.join(RUNTIME_DIR, 'opencv-face', 'venv')
   };
   const marker = markers[toolId];
   try { return Boolean(marker && fs.existsSync(marker)); } catch { return false; }
