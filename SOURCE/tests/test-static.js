@@ -55,12 +55,13 @@ console.log('-- Verzije programa --');
     [path.join(PROGRAM_DIR, 'browser-extension', 'MSS-ChatGPT-Plus-Most', 'manifest.json'), /"version":\s*"15\.6\.0"/],
     [path.join(PROGRAM_DIR, 'browser-extension', 'MSS-ChatGPT-Plus-Most', 'service-worker.js'), /EXTENSION_VERSION = '15\.6\.0'/],
     [path.join(PROGRAM_DIR, 'browser-extension', 'MSS-ChatGPT-Plus-Most', 'chatgpt-bridge.js'), /BRIDGE_VERSION = '15\.6'/],
-    [path.join(ROOT, 'package.json'), /"version":\s*"15\.6\.0"/]
+    [path.join(ROOT, 'package.json'), /"version":\s*"15\.6\.1"/],
+    [path.join(ROOT, 'desktop', 'main.js'), /const APP_VERSION = app\.getVersion\(\)/]
   ];
   for (const [file, pattern] of checks) {
     const content = fs.readFileSync(file, 'utf8');
-    if (pattern.test(content)) ok(`${path.relative(ROOT, file)} — verzija ispravna`);
-    else bad(`${path.relative(ROOT, file)} — verzija NIJE pronađena / netačna`);
+    if (pattern.test(content)) ok(`${path.relative(ROOT, file)} — verzija/protokol ispravan`);
+    else bad(`${path.relative(ROOT, file)} — verzija/protokol NIJE pronađen / netačan`);
   }
 }
 
@@ -89,11 +90,14 @@ console.log('-- Content-Security-Policy --');
 console.log('-- v15.6 completion UI wiring --');
 {
   const completionFile = path.join(PROGRAM_DIR, 'public', 'completion-ui.js');
+  const workflowFile = path.join(PROGRAM_DIR, 'public', 'workflow-tools-ui.js');
   const boot = fs.readFileSync(path.join(PROGRAM_DIR, 'public', 'boot.js'), 'utf8');
   if (fs.existsSync(completionFile)) ok('completion-ui.js postoji'); else bad('completion-ui.js', 'nedostaje');
-  if (/completion-ui\.js/.test(boot) && /loadCompletionUi/.test(boot)) ok('boot.js učitava completion-ui.js'); else bad('boot.js → completion-ui.js', 'UI nije povezan');
+  if (fs.existsSync(workflowFile)) ok('workflow-tools-ui.js postoji'); else bad('workflow-tools-ui.js', 'nedostaje');
+  if (/completion-ui\.js/.test(boot) && /workflow-tools-ui\.js/.test(boot) && /loadCompletionUi/.test(boot)) ok('boot.js učitava oba nova UI panela'); else bad('boot.js UI wiring', 'novi UI nije kompletno povezan');
 
   const completion = fs.readFileSync(completionFile, 'utf8');
+  const workflow = fs.readFileSync(workflowFile, 'utf8');
   const server = fs.readFileSync(path.join(PROGRAM_DIR, 'server.js'), 'utf8');
   const literalUiFragments = [
     '/api/audio-projects', '/audio', '/lyrics', '/plan-scenes', '/rename', '/duplicate', '/archive',
@@ -111,7 +115,12 @@ console.log('-- v15.6 completion UI wiring --');
     else bad(`completion-ui.js /${action}`, 'nedostaje korisnički tok');
   }
 
-  const requiredServerFragments = ['/auto-lyrics', '/align', '/analyze-music', '/plan-scenes', '/rename', '/duplicate', '/archive', '/lyrics-overlay'];
+  for (const fragment of ['/backups', '/restore-backup', '/image-prompts/next-batch', '/image-prompts/submit', '/video-prompts/next-batch', '/video-prompts/submit']) {
+    if (workflow.includes(fragment)) ok(`workflow-tools-ui.js povezuje ${fragment}`);
+    else bad(`workflow-tools-ui.js ${fragment}`, 'nedostaje napredni korisnički tok');
+  }
+
+  const requiredServerFragments = ['/auto-lyrics', '/align', '/analyze-music', '/plan-scenes', '/rename', '/duplicate', '/archive', '/lyrics-overlay', '/backups', '/restore-backup', '/image-prompts/next-batch', '/video-prompts/next-batch'];
   for (const fragment of requiredServerFragments) {
     if (server.includes(fragment)) ok(`server.js ima rutu ${fragment}`);
     else bad(`server.js ruta ${fragment}`, 'UI bi pozivao nepostojeću rutu');
