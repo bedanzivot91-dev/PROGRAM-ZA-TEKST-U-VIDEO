@@ -16,6 +16,11 @@ const wardrobe = require(path.join(ROOT, 'PROGRAM - NE BRISATI', 'wardrobe-regis
 
 let passed = 0;
 function ok(value, message) { assert.ok(value, message); passed++; console.log(`  [OK] ${message}`); }
+function rewriteProject(projectId, patch) {
+  const file = path.join(storage.projects, projectId, 'project.json');
+  const current = JSON.parse(fs.readFileSync(file, 'utf8'));
+  fs.writeFileSync(file, JSON.stringify({ ...current, ...patch }, null, 2), 'utf8');
+}
 
 try {
   console.log('== Core coverage-gap testovi ==');
@@ -26,18 +31,21 @@ try {
 
   const one = projects.createProject({ name: 'Zeta', artist: 'A' });
   const two = projects.createProject({ name: 'Alfa', artist: 'B' });
-  projects.updateProject(one.projectId, {
+
+  // updateProject namerno uvek osvežava updatedAt na "sada", zato sorter test mora
+  // da postavi determinističke fixture timestampove direktno u test storage-u.
+  rewriteProject(one.projectId, {
     createdAt: '2026-01-01T00:00:00.000Z',
-    updatedAt: '2026-01-03T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
     progress: { audio: 100, lyrics: 100, alignment: 100, storyboard: 100, imagePrompts: 100, images: 100, videoPrompts: 100 }
   });
-  projects.updateProject(two.projectId, {
+  rewriteProject(two.projectId, {
     createdAt: '2026-01-02T00:00:00.000Z',
-    updatedAt: '2026-01-02T00:00:00.000Z',
+    updatedAt: '2026-01-03T00:00:00.000Z',
     progress: { audio: 0, lyrics: 0, alignment: 0, storyboard: 0, imagePrompts: 0, images: 0, videoPrompts: 0 }
   });
 
-  ok(projects.listProjects({ sort: 'updatedAt_asc' })[0].projectId === two.projectId, 'listProjects izvršava updatedAt_asc sorter');
+  ok(projects.listProjects({ sort: 'updatedAt_asc' })[0].projectId === one.projectId, 'listProjects izvršava updatedAt_asc sorter');
   ok(projects.listProjects({ sort: 'createdAt_desc' })[0].projectId === two.projectId, 'listProjects izvršava createdAt_desc sorter');
   ok(projects.listProjects({ sort: 'name_asc' })[0].name === 'Alfa', 'listProjects izvršava name_asc sorter');
   ok(projects.listProjects({ sort: 'progress_desc' })[0].projectId === one.projectId, 'listProjects izvršava progress_desc sorter');
