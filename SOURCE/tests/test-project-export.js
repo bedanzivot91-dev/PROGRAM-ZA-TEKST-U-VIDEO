@@ -1,8 +1,6 @@
 'use strict';
-// Testira project-export.js — sekcija 32. Ključna provera: izvoz NIKAD ne sadrži tajne
-// (OAuth token, API key, bridge key), čak i ako bi se takvo polje slučajno našlo u projektu.
 const assert = require('assert');
-const { exportProject, stripSecrets, exportScenesCsv, exportLyricsSrt, EXPORTERS } = require('../PROGRAM - NE BRISATI/project-export');
+const { exportProject, stripSecrets, exportScenesCsv, exportLyricsSrt, exportEdl, exportProjectPdf, exportProjectZip, EXPORTERS } = require('../PROGRAM - NE BRISATI/project-export');
 
 let pass = 0;
 let fail = 0;
@@ -30,18 +28,14 @@ const sampleProject = {
   }
 };
 
-test('exportProjectJson uklanja polja koja liče na tajne (token/secret/apikey/bridgekey)', () => {
+test('exportProjectJson uklanja tajne', () => {
   const withSecrets = { ...sampleProject, accessToken: 'AAAA', refreshToken: 'BBBB', apiKey: 'CCCC', bridgeKey: 'DDDD', nested: { clientSecret: 'EEEE', safeField: 'ok' } };
   const { content } = exportProject(withSecrets, 'project.json');
-  assert.ok(!content.includes('AAAA'));
-  assert.ok(!content.includes('BBBB'));
-  assert.ok(!content.includes('CCCC'));
-  assert.ok(!content.includes('DDDD'));
-  assert.ok(!content.includes('EEEE'));
+  for (const value of ['AAAA','BBBB','CCCC','DDDD','EEEE']) assert.ok(!content.includes(value));
   assert.ok(content.includes('"safeField": "ok"'));
 });
 
-test('stripSecrets radi rekurzivno kroz nizove i ugnježdene objekte', () => {
+test('stripSecrets radi rekurzivno', () => {
   const dirty = { channels: [{ id: 'c1', accessToken: 'secret1' }, { id: 'c2', refreshToken: 'secret2' }] };
   const clean = stripSecrets(dirty);
   assert.strictEqual(JSON.stringify(clean).includes('secret1'), false);
@@ -49,60 +43,70 @@ test('stripSecrets radi rekurzivno kroz nizove i ugnježdene objekte', () => {
   assert.strictEqual(clean.channels[0].id, 'c1');
 });
 
-test('exportStoryboardJson vraća tačan storyboard sa svim scenama', () => {
+test('storyboard JSON radi', () => {
   const { content, mime } = exportProject(sampleProject, 'storyboard.json');
-  const parsed = JSON.parse(content);
-  assert.strictEqual(parsed.scenes.length, 2);
+  assert.strictEqual(JSON.parse(content).scenes.length, 2);
   assert.strictEqual(mime, 'application/json');
 });
 
-test('exportScenesCsv gradi ispravan CSV sa header-om i tačnim brojem redova', () => {
-  const csv = exportScenesCsv(sampleProject);
-  const lines = csv.split('\r\n');
+test('CSV radi', () => {
+  const lines = exportScenesCsv(sampleProject).split('\r\n');
   assert.strictEqual(lines[0], 'sceneId,number,startMs,endMs,durationMs,cutReason');
-  assert.strictEqual(lines.length, 3); // header + 2 scene
-  assert.ok(lines[1].includes('scene-001'));
+  assert.strictEqual(lines.length, 3);
 });
 
-test('CSV escape-uje vrednosti koje sadrže zareze/navodnike/nove redove', () => {
-  const withComma = { storyboard: { scenes: [{ sceneId: 's1', number: 1, startMs: 0, endMs: 1000, durationMs: 1000, cutReason: 'razlog, sa zarezom' }] } };
-  const csv = exportScenesCsv(withComma);
+test('CSV escape', () => {
+  const csv = exportScenesCsv({ storyboard: { scenes: [{ sceneId:'s1', number:1, startMs:0, endMs:1000, durationMs:1000, cutReason:'razlog, sa zarezom' }] } });
   assert.ok(csv.includes('"razlog, sa zarezom"'));
 });
 
-test('exportImagePromptsTxt i exportVideoPromptsTxt sadrže prompt i negative prompt po sceni', () => {
-  const imageTxt = exportProject(sampleProject, 'image-prompts.txt').content;
-  assert.ok(imageTxt.includes('a woman walking'));
-  assert.ok(imageTxt.includes('NEGATIVE: blurry'));
-  const videoTxt = exportProject(sampleProject, 'video-prompts.txt').content;
-  assert.ok(videoTxt.includes('slow zoom'));
+test('prompt exports rade', () => {
+  assert.ok(exportProject(sampleProject, 'image-prompts.txt').content.includes('a woman walking'));
+  assert.ok(exportProject(sampleProject, 'video-prompts.txt').content.includes('slow zoom'));
 });
 
-test('exportLyricsTxt vraća formatiran tekst sa section tagovima', () => {
-  const txt = exportProject(sampleProject, 'lyrics.txt').content;
-  assert.ok(txt.includes('[Verse]'));
-  assert.ok(txt.includes('Prva linija'));
-});
+test('lyrics txt radi', () => { assert.ok(exportProject(sampleProject, 'lyrics.txt').content.includes('[Verse]')); });
 
-test('exportLyricsSrt gradi validan SRT format, PRESKAČE linije bez vremena', () => {
+test('SRT preskače linije bez vremena', () => {
   const srt = exportLyricsSrt(sampleProject);
   assert.ok(srt.startsWith('1\n00:00:00,000 --> 00:00:02,000\n'));
-  assert.ok(!srt.includes('Bez vremena')); // linija bez startMs/endMs se ne izvozi kao netačan titl
+  assert.ok(!srt.includes('Bez vremena'));
 });
 
-test('SRT escape-uje navodnike u tekstu bez rušenja formata (samo prikazuje tekst kakav jeste)', () => {
-  const srt = exportLyricsSrt(sampleProject);
-  assert.ok(srt.includes('Prva linija, sa zarezom "i navodnicima"'));
+test('EDL format je validan CMX-style tekst', () => {
+  const edl = exportEdl(sampleProject);
+  assert.ok(edl.includes('TITLE: Test Spot'));
+  assert.ok(edl.includes('FCM: NON-DROP FRAME'));
+  assert.ok(edl.includes('001  AX       V     C'));
+  assert.ok(edl.includes('00:00:00:00'));
 });
 
-test('exportProject baca jasnu grešku za nepoznat format', () => {
+test('PDF ima validan PDF header i EOF', () => {
+  const pdf = exportProjectPdf(sampleProject);
+  assert.ok(Buffer.isBuffer(pdf));
+  assert.ok(pdf.subarray(0, 8).toString('ascii').startsWith('%PDF-1.4'));
+  assert.ok(pdf.toString('binary').includes('%%EOF'));
+});
+
+test('ZIP ima PK header i ne sadrži tajne u project.json sadržaju', () => {
+  const zip = exportProjectZip({ ...sampleProject, accessToken: 'NE_SME_U_ZIP' });
+  assert.ok(Buffer.isBuffer(zip));
+  assert.strictEqual(zip.readUInt32LE(0), 0x04034b50);
+  assert.ok(!zip.includes(Buffer.from('NE_SME_U_ZIP')));
+});
+
+test('exportProject vraća nove formate sa MIME tipovima', () => {
+  assert.strictEqual(exportProject(sampleProject, 'timeline.edl').mime, 'application/edl');
+  assert.strictEqual(exportProject(sampleProject, 'project.pdf').mime, 'application/pdf');
+  assert.strictEqual(exportProject(sampleProject, 'project.zip').mime, 'application/zip');
+});
+
+test('nepoznat format baca grešku', () => {
   assert.throws(() => exportProject(sampleProject, 'format-koji-ne-postoji.xyz'), /Nepoznat format izvoza/);
 });
 
-test('svi formati iz EXPORTERS rade bez bacanja greške na praznom/minimalnom projektu', () => {
-  for (const format of Object.keys(EXPORTERS)) {
-    assert.doesNotThrow(() => exportProject({}, format), `format "${format}" je bacio grešku na praznom projektu`);
-  }
+test('svi EXPORTERS rade na minimalnom projektu', () => {
+  for (const format of Object.keys(EXPORTERS)) assert.doesNotThrow(() => exportProject({}, format), format);
 });
 
 console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);

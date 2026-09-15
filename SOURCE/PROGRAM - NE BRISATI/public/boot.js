@@ -1,8 +1,8 @@
 'use strict';
 
 // Ovaj mali lokalni fajl se učitava pre svih CDN biblioteka.
-// Zbog toga launcher odmah dobija potvrdu da je browser zaista otvorio Studio,
-// čak i kada je internet spor ili neka spoljna biblioteka kasni.
+// Launcher odmah dobija potvrdu da je browser otvorio Studio, a zatim se učitava
+// dodatni v15.6 UI koji povezuje novi audio/lyrics backend bez diranja starog app.js toka.
 (() => {
   function createId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -45,9 +45,21 @@
     } catch (_) {}
   }
 
+  function loadCompletionUi() {
+    if (document.querySelector('script[data-mss-completion-ui]')) return;
+    const script = document.createElement('script');
+    script.src = '/completion-ui.js';
+    script.defer = true;
+    script.dataset.mssCompletionUi = '1';
+    script.onerror = () => console.error('[MSS] completion-ui.js nije učitan.');
+    document.head.appendChild(script);
+  }
+
   window.__MSS_BROWSER_CLIENT_ID__ = clientId;
   heartbeat();
   heartbeatTimer = setInterval(heartbeat, 4000);
   window.addEventListener('pagehide', closeSession, { capture: true });
   window.addEventListener('beforeunload', closeSession, { capture: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadCompletionUi, { once: true });
+  else loadCompletionUi();
 })();
