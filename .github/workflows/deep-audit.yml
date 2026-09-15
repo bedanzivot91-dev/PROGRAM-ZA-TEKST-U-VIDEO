@@ -81,12 +81,15 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "SOURCE/package.json" "SOURCE/package-lock.json" "SOURCE/PROGRAM - NE BRISATI/background-worker.js" "SOURCE/PROGRAM - NE BRISATI/launcher.js" "SOURCE/PROGRAM - NE BRISATI/server.js" "SOURCE/PROGRAM - NE BRISATI/research-engine.js" "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
-          if (git diff --cached --quiet) {
+          git add "SOURCE/package.json" "SOURCE/package-lock.json" "SOURCE/desktop/preload.js" "SOURCE/PROGRAM - NE BRISATI/background-worker.js" "SOURCE/PROGRAM - NE BRISATI/launcher.js" "SOURCE/PROGRAM - NE BRISATI/server.js" "SOURCE/PROGRAM - NE BRISATI/research-engine.js" "SOURCE/PROGRAM - NE BRISATI/INTEGRITET-FAJLOVA-SHA256.txt"
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
             Write-Host "Dependencies, runtime verzije i integrity manifest su već sinhronizovani."
           } else {
             git commit -m "Synchronize audited dependencies runtime versions and v15.6.1 integrity manifest"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             git push origin HEAD:${{ github.ref_name }}
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
 
       - name: Verify main/PR manifest is committed and current
@@ -122,14 +125,13 @@ jobs:
           node tests/analyze-v8-coverage.js
 
       - name: Fail when any audit layer failed
-        if: always()
+        if: ${{ always() && (steps.dependency_audit.outcome != 'success' || steps.deep_audit.outcome != 'success' || steps.full_tests.outcome != 'success' || steps.coverage.outcome != 'success') }}
         shell: pwsh
         run: |
-          $deps = '${{ steps.dependency_audit.outcome }}'
-          $deep = '${{ steps.deep_audit.outcome }}'
-          $tests = '${{ steps.full_tests.outcome }}'
-          $coverage = '${{ steps.coverage.outcome }}'
-          if ($deps -ne 'success' -or $deep -ne 'success' -or $tests -ne 'success' -or $coverage -ne 'success') {
-            Write-Error "Dubinski audit nije zelen. dependencies=$deps deep=$deep tests=$tests coverage=$coverage"
-            exit 1
-          }
+          Write-Error "Dubinski audit nije zelen. dependencies=${{ steps.dependency_audit.outcome }} deep=${{ steps.deep_audit.outcome }} tests=${{ steps.full_tests.outcome }} coverage=${{ steps.coverage.outcome }}"
+          exit 1
+
+      - name: Confirm green audit
+        if: ${{ always() && steps.dependency_audit.outcome == 'success' && steps.deep_audit.outcome == 'success' && steps.full_tests.outcome == 'success' && steps.coverage.outcome == 'success' }}
+        shell: pwsh
+        run: Write-Host "Svi slojevi dubinskog audita su zeleni."
