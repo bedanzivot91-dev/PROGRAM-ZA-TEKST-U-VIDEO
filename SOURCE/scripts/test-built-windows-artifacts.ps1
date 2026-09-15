@@ -45,6 +45,57 @@ function Assert-StudioVersion($Probe, [string]$Label) {
   Write-Host "[OK] $Label stvarno pokrenut: port=$($Probe.Port), version=$($Probe.Health.version)"
 }
 
+function Write-PackagedDiagnostics([string]$Label, [System.Diagnostics.Process]$Process, [string]$InstallRoot) {
+  Write-Host "`n===== PACKAGED EXE DIAGNOSTIKA: $Label ====="
+  if ($Process) {
+    try {
+      $Process.Refresh()
+      Write-Host "Process: Id=$($Process.Id) HasExited=$($Process.HasExited)"
+      if ($Process.HasExited) { Write-Host "ExitCode=$($Process.ExitCode)" }
+    } catch { Write-Warning "Ne mogu da pročitam stanje procesa: $($_.Exception.Message)" }
+  }
+
+  if ($InstallRoot -and (Test-Path $InstallRoot)) {
+    Write-Host "Install root: $InstallRoot"
+    $programRoot = Join-Path $InstallRoot 'resources\PROGRAM'
+    $serverFile = Join-Path $programRoot 'server.js'
+    Write-Host "resources\\PROGRAM postoji: $(Test-Path $programRoot)"
+    Write-Host "resources\\PROGRAM\\server.js postoji: $(Test-Path $serverFile)"
+    if (Test-Path $programRoot) {
+      Write-Host 'Prvih 80 stavki resources\PROGRAM:'
+      Get-ChildItem -Path $programRoot -Recurse -Force -ErrorAction SilentlyContinue |
+        Select-Object -First 80 FullName,Length,LastWriteTime |
+        Format-Table -AutoSize | Out-String | Write-Host
+    }
+  }
+
+  $roots = @($env:APPDATA, $env:LOCALAPPDATA) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
+  $names = @('electron-main.log','server-stdout.log','server-stderr.log','DIJAGNOSTIKA-EXE.txt')
+  $cutoff = (Get-Date).AddMinutes(-20)
+  foreach ($root in $roots) {
+    Write-Host "Tražim runtime logove pod: $root"
+    foreach ($name in $names) {
+      $matches = Get-ChildItem -Path $root -Filter $name -File -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTime -ge $cutoff } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 5
+      foreach ($file in $matches) {
+        Write-Host "--- $($file.FullName) ($($file.Length) B, $($file.LastWriteTime.ToString('s'))) ---"
+        try {
+          Get-Content -LiteralPath $file.FullName -Tail 250 -ErrorAction Stop | ForEach-Object { Write-Host $_ }
+        } catch { Write-Warning "Ne mogu da pročitam $($file.FullName): $($_.Exception.Message)" }
+      }
+    }
+  }
+
+  Write-Host 'Aktivni procesi povezani sa Muzicki/Electron/Node:'
+  Get-Process -ErrorAction SilentlyContinue |
+    Where-Object { $_.ProcessName -match '(?i)muzicki|electron|node' } |
+    Select-Object ProcessName,Id,Path,StartTime |
+    Format-Table -AutoSize | Out-String | Write-Host
+  Write-Host "===== KRAJ DIJAGNOSTIKE: $Label =====`n"
+}
+
 $setup = Resolve-Path $SetupPath
 $portable = Resolve-Path $PortablePath
 $installDir = Join-Path $env:RUNNER_TEMP 'MSS-Installed-Runtime-Smoke'
@@ -72,9 +123,13 @@ try {
 
   Write-Host "[TEST] Pokrećem stvarno instalirani EXE: $($installedExe.FullName)"
   $installedProcess = Start-Process -FilePath $installedExe.FullName -PassThru
+  $installedProbe = $null
   try {
     $installedProbe = Wait-StudioHealth 60
     Assert-StudioVersion $installedProbe 'Installed EXE'
+  } catch {
+    Write-PackagedDiagnostics 'INSTALLED EXE FAILURE' $installedProcess $installDir
+    throw
   } finally {
     if ($installedProbe) { Stop-Studio $installedProbe.Port $installedProcess }
     elseif ($installedProcess) { try { Stop-Process -Id $installedProcess.Id -Force -ErrorAction SilentlyContinue } catch {} }
@@ -89,9 +144,13 @@ try {
 
   Write-Host "[TEST] Pokrećem Portable EXE: $portable"
   $portableProcess = Start-Process -FilePath $portable -PassThru
+  $portableProbe = $null
   try {
     $portableProbe = Wait-StudioHealth 60
     Assert-StudioVersion $portableProbe 'Portable EXE'
+  } catch {
+    Write-PackagedDiagnostics 'PORTABLE EXE FAILURE' $portableProcess (Split-Path -Parent $portable)
+    throw
   } finally {
     if ($portableProbe) { Stop-Studio $portableProbe.Port $portableProcess }
     elseif ($portableProcess) { try { Stop-Process -Id $portableProcess.Id -Force -ErrorAction SilentlyContinue } catch {} }
