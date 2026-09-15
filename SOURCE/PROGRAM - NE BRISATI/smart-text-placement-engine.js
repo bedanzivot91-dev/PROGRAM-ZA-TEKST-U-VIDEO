@@ -1,13 +1,16 @@
 'use strict';
 
 // SmartTextPlacementEngine: predlaže poziciju teksta koja izbegava lica/logotipe i podržava
-// stvarnu automatsku detekciju lica kada je lokalni Python + OpenCV dostupan. Kada OpenCV nije
-// instaliran, funkcija iskreno vraća supported:false i ostatak programa nastavlja sa ručnim
-// protected zonama — nema lažnih/mock rezultata i nema rušenja projekta.
+// stvarnu automatsku detekciju lica kada je lokalni OpenCV dostupan. Kada nije instaliran,
+// funkcija iskreno vraća supported:false i ostatak programa nastavlja sa ručnim protected zonama.
 
 const fs = require('fs');
+const path = require('path');
 const childProcess = require('child_process');
 const { resolveSafeZone, resolveAnchorPosition, anchorToFraction, ANCHORS } = require('./text-layout-engine');
+
+const DATA_DIR = process.env.MSS_DATA_DIR ? path.resolve(process.env.MSS_DATA_DIR) : path.join(__dirname, 'data');
+const OPENCV_VENV_PYTHON = path.join(DATA_DIR, 'runtime', 'opencv-face', 'venv', 'Scripts', 'python.exe');
 
 const OPENCV_FACE_SCRIPT = String.raw`
 import json, os, sys
@@ -51,16 +54,14 @@ function parseLastJsonLine(output) {
 }
 
 function pythonCandidates() {
-  return process.platform === 'win32'
-    ? [
-        { command: 'py', prefix: ['-3'] },
-        { command: 'python', prefix: [] },
-        { command: 'python3', prefix: [] }
-      ]
-    : [
-        { command: 'python3', prefix: [] },
-        { command: 'python', prefix: [] }
-      ];
+  const candidates = [];
+  if (process.platform === 'win32' && fs.existsSync(OPENCV_VENV_PYTHON)) candidates.push({ command: OPENCV_VENV_PYTHON, prefix: [] });
+  if (process.platform === 'win32') {
+    candidates.push({ command: 'py', prefix: ['-3'] }, { command: 'python', prefix: [] }, { command: 'python3', prefix: [] });
+  } else {
+    candidates.push({ command: 'python3', prefix: [] }, { command: 'python', prefix: [] });
+  }
+  return candidates;
 }
 
 function runOpenCvFaceDetection(imagePath, { execFileSync = childProcess.execFileSync, timeoutMs = 15000 } = {}) {
@@ -82,7 +83,7 @@ function runOpenCvFaceDetection(imagePath, { execFileSync = childProcess.execFil
   return {
     supported: false,
     faces: [],
-    reason: `Automatska detekcija lica nije dostupna (${lastReason}). Instaliraj Python + opencv-python ili dodaj protected zonu ručno.`
+    reason: `Automatska detekcija lica nije dostupna (${lastReason}). Instaliraj alat OpenCV (detekcija lica) u panelu LOKALNI ALATI ili dodaj protected zonu ručno.`
   };
 }
 
