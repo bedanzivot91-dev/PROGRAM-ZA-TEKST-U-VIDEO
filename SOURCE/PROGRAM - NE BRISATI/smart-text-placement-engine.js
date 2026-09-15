@@ -1,29 +1,102 @@
 'use strict';
 
-// SmartTextPlacementEngine (sekcija 5 dodatka o tekstu na videu). Predlaže poziciju teksta koja
-// izbegava "protected zone" pravougaonike (lica, logotipi, postojeći UI elementi) unutar safe
-// zone, i pruža clamp-ovanje za slobodno drag pozicioniranje.
-//
-// POŠTENO (isti obrazac kao Demucs/librosa/faster-whisper u audio pipeline-u): na ovoj mašini
-// nije instalirana nijedna prava face-detection biblioteka. detectFaces() zato vraća
-// supported:false i prazan niz lica umesto lažnog/mock rezultata — pravi interfejs postoji i
-// testiran je za ovaj iskren fallback slučaj; stvarna detekcija lica nije testirana ovde. Kada
-// korisnik ručno doda protected zonu (npr. oko lica na sceni), avoidance logika ispod radi
-// identično bez obzira na to da li je zona ručna ili (u budućnosti) automatski detektovana.
+// SmartTextPlacementEngine: predlaže poziciju teksta koja izbegava lica/logotipe i podržava
+// stvarnu automatsku detekciju lica kada je lokalni Python + OpenCV dostupan. Kada OpenCV nije
+// instaliran, funkcija iskreno vraća supported:false i ostatak programa nastavlja sa ručnim
+// protected zonama — nema lažnih/mock rezultata i nema rušenja projekta.
 
+const fs = require('fs');
+const childProcess = require('child_process');
 const { resolveSafeZone, resolveAnchorPosition, anchorToFraction, ANCHORS } = require('./text-layout-engine');
 
-function detectFaces(_imagePath) {
+const OPENCV_FACE_SCRIPT = String.raw`
+import json, os, sys
+try:
+    import cv2
+except Exception as exc:
+    print(json.dumps({"ok": False, "reason": "opencv_not_installed", "detail": str(exc)}))
+    raise SystemExit(0)
+path = sys.argv[1]
+image = cv2.imread(path)
+if image is None:
+    print(json.dumps({"ok": False, "reason": "image_unreadable"}))
+    raise SystemExit(0)
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+cascade_path = os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml")
+cascade = cv2.CascadeClassifier(cascade_path)
+if cascade.empty():
+    print(json.dumps({"ok": False, "reason": "cascade_unavailable"}))
+    raise SystemExit(0)
+rects = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(24, 24))
+h, w = image.shape[:2]
+faces = []
+for (x, y, fw, fh) in rects:
+    faces.append({
+        "type": "face",
+        "source": "opencv-haar",
+        "left": max(0.0, float(x) / float(w)),
+        "top": max(0.0, float(y) / float(h)),
+        "right": min(1.0, float(x + fw) / float(w)),
+        "bottom": min(1.0, float(y + fh) / float(h))
+    })
+print(json.dumps({"ok": True, "width": int(w), "height": int(h), "faces": faces}))
+`;
+
+function parseLastJsonLine(output) {
+  const lines = String(output || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean).reverse();
+  for (const line of lines) {
+    try { return JSON.parse(line); } catch {}
+  }
+  return null;
+}
+
+function pythonCandidates() {
+  return process.platform === 'win32'
+    ? [
+        { command: 'py', prefix: ['-3'] },
+        { command: 'python', prefix: [] },
+        { command: 'python3', prefix: [] }
+      ]
+    : [
+        { command: 'python3', prefix: [] },
+        { command: 'python', prefix: [] }
+      ];
+}
+
+function runOpenCvFaceDetection(imagePath, { execFileSync = childProcess.execFileSync, timeoutMs = 15000 } = {}) {
+  let lastReason = 'python_or_opencv_not_available';
+  for (const candidate of pythonCandidates()) {
+    try {
+      const stdout = execFileSync(candidate.command, [...candidate.prefix, '-c', OPENCV_FACE_SCRIPT, imagePath], {
+        encoding: 'utf8', timeout: timeoutMs, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe']
+      });
+      const parsed = parseLastJsonLine(stdout);
+      if (!parsed) { lastReason = 'invalid_detector_output'; continue; }
+      if (parsed.ok) return { supported: true, faces: Array.isArray(parsed.faces) ? parsed.faces : [], detector: 'opencv-haar', width: parsed.width, height: parsed.height };
+      lastReason = parsed.reason || lastReason;
+      if (parsed.reason === 'image_unreadable') return { supported: true, faces: [], detector: 'opencv-haar', reason: 'Slika ne može da se pročita.' };
+    } catch (error) {
+      lastReason = error?.code === 'ENOENT' ? 'python_not_installed' : 'opencv_not_available';
+    }
+  }
   return {
     supported: false,
     faces: [],
-    reason: 'Face-detection biblioteka nije instalirana na ovoj mašini — automatska detekcija lica nije aktivna niti testirana. Dodaj protected zonu ručno ako je potrebno izbeći određenu oblast kadra.'
+    reason: `Automatska detekcija lica nije dostupna (${lastReason}). Instaliraj Python + opencv-python ili dodaj protected zonu ručno.`
   };
+}
+
+function detectFaces(imagePath, options = {}) {
+  const resolved = String(imagePath || '').trim();
+  if (!resolved || !fs.existsSync(resolved)) {
+    return { supported: false, faces: [], reason: 'Slika za detekciju lica ne postoji ili putanja nije validna.' };
+  }
+  return runOpenCvFaceDetection(resolved, options);
 }
 
 function createProtectedZone({ type = 'custom', source = 'manual', left, top, right, bottom } = {}) {
   const coords = [left, top, right, bottom];
-  if (!coords.every(Number.isFinite) || right <= left || bottom <= top) {
+  if (!coords.every(Number.isFinite) || right <= left || bottom <= top || left < 0 || top < 0 || right > 1 || bottom > 1) {
     throw new Error('createProtectedZone zahteva validne normalizovane (0-1) koordinate sa left<right i top<bottom.');
   }
   return { type, source, left, top, right, bottom };
@@ -33,8 +106,6 @@ function rectsOverlap(a, b) {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
-// Pretvara anchor tačku (piksel poziciju) + dimenzije teksta u normalizovan (0-1) pravougaonik,
-// da bi se mogao porediti sa protected zonama koje su takođe u normalizovanim koordinatama.
 function computeTextBoxRectNormalized(position, widthPx, heightPx, anchor, video) {
   const { xFrac, yFrac } = anchorToFraction(anchor);
   const leftPx = position.xPx - xFrac * widthPx;
@@ -47,16 +118,11 @@ function computeTextBoxRectNormalized(position, widthPx, heightPx, anchor, video
   };
 }
 
-// Redosled pokušaja kada preferirani anchor preseca protected zonu — prvo alternativna dna/vrh
-// pozicija (najčešće poželjne za titlove), pa uglovi, pa centar kao poslednja opcija.
 const ANCHOR_FALLBACK_ORDER = [
   'bottom-center', 'top-center', 'bottom-left', 'bottom-right',
   'top-left', 'top-right', 'center-left', 'center-right', 'center'
 ];
 
-// Vraća anchor (počev od preferiranog) čiji tekst-box ne preseca nijednu protected zonu. Ako
-// NIJEDAN anchor ne uspeva da izbegne sve zone, vraća onaj sa najmanje preklapanja i
-// placementConfidence 0 — nikad ne baca zbog nemogućnosti izbegavanja, samo iskreno prijavljuje.
 function suggestPlacement({ preferredAnchor = 'bottom-center', protectedZones = [], widthPx, heightPx, video, aspectRatio } = {}) {
   if (!Number.isFinite(widthPx) || !Number.isFinite(heightPx) || widthPx <= 0 || heightPx <= 0) {
     throw new Error('suggestPlacement zahteva pozitivne widthPx i heightPx (dimenzije tekst-bloka).');
@@ -66,27 +132,19 @@ function suggestPlacement({ preferredAnchor = 'bottom-center', protectedZones = 
 
   const safeZone = resolveSafeZone(aspectRatio);
   const candidateAnchors = [preferredAnchor, ...ANCHOR_FALLBACK_ORDER.filter(a => a !== preferredAnchor)];
-
   let bestFallback = null;
   for (const anchor of candidateAnchors) {
     const position = resolveAnchorPosition({ placementMode: 'preset', anchor }, safeZone, video);
     const rect = computeTextBoxRectNormalized(position, widthPx, heightPx, anchor, video);
     const overlapping = protectedZones.filter(zone => rectsOverlap(rect, zone));
-
     if (overlapping.length === 0) {
       return { anchor, position, rect, placementConfidence: 1, protectedZonesAvoided: protectedZones.map(z => z.type) };
     }
-    if (!bestFallback || overlapping.length < bestFallback.overlapCount) {
-      bestFallback = { anchor, position, rect, overlapCount: overlapping.length };
-    }
+    if (!bestFallback || overlapping.length < bestFallback.overlapCount) bestFallback = { anchor, position, rect, overlapCount: overlapping.length };
   }
-
   return { anchor: bestFallback.anchor, position: bestFallback.position, rect: bestFallback.rect, placementConfidence: 0, protectedZonesAvoided: [] };
 }
 
-// Za slobodno drag pozicioniranje (manual mod): vraća poziciju uklještenu unutar safe zone.
-// Ne primenjuje se automatski — UI poziva ovo kada korisnik pusti tekst da bi ga po želji
-// "prilepio" u bezbednu oblast, ili samo prikazao upozorenje ako je wasClamped=true.
 function clampManualPositionToSafeZone(x, y, aspectRatio) {
   const safeZone = resolveSafeZone(aspectRatio);
   const minX = safeZone.left;
@@ -99,6 +157,7 @@ function clampManualPositionToSafeZone(x, y, aspectRatio) {
 }
 
 module.exports = {
-  detectFaces, createProtectedZone, rectsOverlap, computeTextBoxRectNormalized,
+  detectFaces, runOpenCvFaceDetection, parseLastJsonLine,
+  createProtectedZone, rectsOverlap, computeTextBoxRectNormalized,
   suggestPlacement, clampManualPositionToSafeZone
 };
