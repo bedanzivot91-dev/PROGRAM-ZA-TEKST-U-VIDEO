@@ -124,7 +124,13 @@ async function run() {
   win.webContents.on('render-process-gone', (_event, details) => hardErrors.push(`render-process-gone: ${details?.reason || 'unknown'}`));
   win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
     const text = String(message || '');
-    if (level >= 3 || /uncaught|referenceerror|typeerror|syntaxerror|nije učitan|preload/i.test(text)) hardErrors.push(`console[${level}] ${text} (${sourceId || ''}:${line || 0})`);
+    // Chromium uvek prijavljuje ovo kao console level 3 kada je frame-ancestors u meta CSP-u.
+    // To nije JavaScript/runtime kvar; ignorišemo isključivo ovu jednu poznatu poruku,
+    // dok sve ostale CSP/console greške i dalje ostaju fatalne za audit.
+    const harmlessMetaFrameAncestorsWarning = /Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element/i.test(text);
+    if (!harmlessMetaFrameAncestorsWarning && (level >= 3 || /uncaught|referenceerror|typeerror|syntaxerror|nije učitan|preload/i.test(text))) {
+      hardErrors.push(`console[${level}] ${text} (${sourceId || ''}:${line || 0})`);
+    }
   });
 
   // Chromium Profiler ume da visi ako se uključi odmah nakon kreiranja praznog
