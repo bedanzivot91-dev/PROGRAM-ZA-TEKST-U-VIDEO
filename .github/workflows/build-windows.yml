@@ -42,9 +42,7 @@ jobs:
           ffprobe -version
 
       - name: Synchronize package-lock and patched transitive dependencies
-        run: |
-          npm version 15.6.1 --no-git-tag-version --allow-same-version
-          npm install --package-lock-only --ignore-scripts
+        run: npm install --package-lock-only --ignore-scripts
 
       - name: Commit synchronized lockfile on repair branch
         if: startsWith(github.ref, 'refs/heads/chatgpt/')
@@ -94,24 +92,14 @@ jobs:
       - name: Build NSIS and portable EXE
         run: npm run dist:all
 
-      - name: Silent NSIS install and uninstall smoke test
+      - name: Real installed and portable EXE runtime smoke test
         shell: pwsh
         run: |
           $setup = Get-ChildItem -Path dist -Filter "Muzicki-Spot-Studio-Free-Setup-v15.6.1.exe" | Select-Object -First 1
-          if (-not $setup) { throw "NSIS setup v15.6.1 EXE nije pronađen." }
-          $installDir = Join-Path $env:RUNNER_TEMP "MSS-Installed"
-          if (Test-Path $installDir) { Remove-Item $installDir -Recurse -Force }
-          $proc = Start-Process -FilePath $setup.FullName -ArgumentList "/S", "/D=$installDir" -Wait -PassThru
-          if ($proc.ExitCode -ne 0) { throw "NSIS silent install nije uspeo. ExitCode=$($proc.ExitCode)" }
-          if (-not (Test-Path $installDir)) { throw "Install folder nije napravljen." }
-          $installedExe = Get-ChildItem -Path $installDir -Filter "*.exe" -File | Where-Object { $_.Name -notmatch "(?i)unins|uninstall" } | Select-Object -First 1
-          if (-not $installedExe) { throw "Instalirana aplikacija EXE nije pronađena." }
-          $uninstaller = Get-ChildItem -Path $installDir -Filter "*.exe" -File | Where-Object { $_.Name -match "(?i)unins|uninstall" } | Select-Object -First 1
-          if (-not $uninstaller) { throw "Uninstaller nije pronađen." }
-          $unproc = Start-Process -FilePath $uninstaller.FullName -ArgumentList "/S" -Wait -PassThru
-          if ($unproc.ExitCode -ne 0) { throw "NSIS silent uninstall nije uspeo. ExitCode=$($unproc.ExitCode)" }
-          Start-Sleep -Seconds 2
-          if (Test-Path $installedExe.FullName) { throw "Aplikacioni EXE je ostao posle uninstall-a." }
+          $portable = Get-ChildItem -Path dist -Filter "Muzicki-Spot-Studio-Free-Portable-v15.6.1.exe" | Select-Object -First 1
+          if (-not $setup -or -not $portable) { throw "Setup ili Portable v15.6.1 EXE nije pronađen." }
+          & ./scripts/test-built-windows-artifacts.ps1 -SetupPath $setup.FullName -PortablePath $portable.FullName -ExpectedVersion "15.6"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Split package round-trip smoke test
         shell: pwsh
