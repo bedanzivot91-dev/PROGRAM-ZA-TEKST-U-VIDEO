@@ -43,11 +43,21 @@ async function waitFor(predicateSource, timeoutMs = 15000) {
   return null;
 }
 
+function normalizeCoverageUrl(value) {
+  const raw = String(value || '');
+  try {
+    const parsed = new URL(raw);
+    return parsed.pathname || '';
+  } catch (_) {
+    return raw.split(/[?#]/, 1)[0];
+  }
+}
+
 function summarizeCoverage(entries) {
   const wanted = ['app.js', 'boot.js', 'completion-ui.js', 'workflow-tools-ui.js'];
   const result = {};
   for (const name of wanted) {
-    const entry = entries.find(item => String(item.url || '').endsWith(`/${name}`));
+    const entry = entries.find(item => normalizeCoverageUrl(item.url).endsWith(`/${name}`));
     if (!entry) { result[name] = { loaded:false, functions:0, executed:0 }; continue; }
     const functions = Array.isArray(entry.functions) ? entry.functions : [];
     const executed = functions.filter(fn => (fn.ranges || []).some(range => Number(range.count || 0) > 0)).length;
