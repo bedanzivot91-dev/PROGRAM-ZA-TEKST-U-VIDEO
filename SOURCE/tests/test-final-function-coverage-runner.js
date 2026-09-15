@@ -32,15 +32,14 @@ source = source.replace(updaterCall, `  const originalUpdaterLoad = Module._load
     Module._load = originalUpdaterLoad;
   }`);
 
-// Nijedan lokalni HTTP test ne sme da visi zauvek. Bez ovog timeout-a jedna ruta koja
-// ne zatvori odgovor može da zaključa ceo npm test i CI bez korisne dijagnostike.
-const httpErrorMarker = "    req.on('error', reject);\n    if (payload) req.write(payload);";
-if (!source.includes(httpErrorMarker)) {
+// Nijedan lokalni HTTP test ne sme da visi zauvek. Regex namerno prihvata LF i CRLF
+// jer GitHub Windows checkout može da promeni fizički završetak reda.
+const httpErrorPattern = /(\s+req\.on\('error', reject\);\s*)(if \(payload\) req\.write\(payload\);)/m;
+if (!httpErrorPattern.test(source)) {
   throw new Error('httpJson marker nije pronađen u final coverage testu.');
 }
-source = source.replace(httpErrorMarker, `    req.on('error', reject);
-    req.setTimeout(10000, () => req.destroy(new Error(\`HTTP timeout: \${method} \${pathname}\`)));
-    if (payload) req.write(payload);`);
+source = source.replace(httpErrorPattern, `$1req.setTimeout(10000, () => req.destroy(new Error(\`HTTP timeout: \${method} \${pathname}\`)));
+    $2`);
 
 // Ispiši preciznu fazu pre i posle svakog završnog testa. Tako sledeći kvar pokazuje
 // tačnu funkcionalnu oblast umesto da CI deluje kao da je samo "zaglavljen".
@@ -61,14 +60,13 @@ for (const name of [
 
 // Završni coverage test je fail-fast: čak i ako neki spoljašnji Windows proces ili socket
 // ignoriše sopstveni timeout, CI mora da vrati tačnu grešku umesto da visi do GitHub limita.
-const suiteStart = "(async () => {\n  console.log('== FINALNI FUNCTION-COVERAGE GAP TESTOVI ==');";
-if (!source.includes(suiteStart)) throw new Error('Final suite start marker nije pronađen.');
-source = source.replace(suiteStart, `(async () => {
-  const hardWatchdog = setTimeout(() => {
+const suiteLog = "  console.log('== FINALNI FUNCTION-COVERAGE GAP TESTOVI ==');";
+if (!source.includes(suiteLog)) throw new Error('Final suite start marker nije pronađen.');
+source = source.replace(suiteLog, `  const hardWatchdog = setTimeout(() => {
     console.error('\\n[FAIL] Final function coverage audit je prekoračio 240 sekundi. Poslednja [FAZA START] poruka pokazuje gde je blokada.');
     process.exit(2);
   }, 240000);
-  console.log('== FINALNI FUNCTION-COVERAGE GAP TESTOVI ==');`);
+${suiteLog}`);
 const successMarker = "    console.log(`\\n== REZULTAT: ${passed} prošlo, 0 nije prošlo ==`);";
 if (!source.includes(successMarker)) throw new Error('Final suite success marker nije pronađen.');
 source = source.replace(successMarker, `    clearTimeout(hardWatchdog);\n${successMarker}`);
