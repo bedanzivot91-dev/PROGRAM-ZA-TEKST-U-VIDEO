@@ -36,7 +36,9 @@ function setupAutoUpdate(log) {
   }
 }
 
-const APP_VERSION = '15.6.0';
+// Jedan izvor istine za desktop verziju: package.json. Tako O programu, dijagnostika,
+// logovi i ime build artefakta više ne mogu da se raziđu pri patch izdanju.
+const APP_VERSION = app.getVersion();
 const USER_DATA_SUBDIRS = ['projects', 'database', 'backups', 'logs', 'bridge', 'cache', 'exports', 'temp', 'settings', 'secure'];
 
 // Bezbedna rezerva za slabije/starije grafičke kartice (npr. GTX 750 Ti klasa hardvera koju
@@ -250,8 +252,6 @@ async function createWindow(log, serverUrl) {
     else log(`[bezbednost] Blokirana navigacija: ${url}`);
   });
 
-  // Ako se renderer (Chromium tab) sruši ili nestane iz memorije, korisnik inače vidi samo
-  // zamrznut/prazan prozor. Ovde mu dajemo jasan izbor umesto tihog zamrzavanja.
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     log(`[render-process-gone] razlog: ${details.reason}`);
     if (quitting || !mainWindow) return;
@@ -303,11 +303,6 @@ async function bootstrap() {
     log(`Server spreman: ${serverHandle.url} (već pokrenut ranije: ${serverHandle.alreadyRunning})`);
     writeDiagnostics(userDataRoot, { status: 'USPEŠNO', url: serverHandle.url, port: serverHandle.port });
 
-    // Server javlja preko IPC-a kad se gasi NAMERNO (dugme ZATVORI PROGRAM u UI-ju zove HTTP
-    // rutu direktno, van ovog Electron procesa) — bez ovoga bi izgledalo identično kao pravi pad.
-    // shutdownAndQuit() MORA biti pozvan ovde (ne samo quitting=true) — inače se prozor nikad
-    // stvarno ne zatvara jer je jedini drugi poziv shutdownAndQuit() unutar dijaloga koji smo
-    // upravo zaobišli, pa bi Electron procesi (main/gpu/renderer) ostali da vise bez razloga.
     serverHandle.child?.on('message', message => {
       if (message?.type === 'mss-intentional-shutdown') {
         log(`[server] namerno gašenje: ${message.reason || ''}`);
@@ -315,8 +310,6 @@ async function bootstrap() {
       }
     });
 
-    // Ako server proces neočekivano nestane DOK je prozor već otvoren (ne pri startu),
-    // korisnik inače ostaje sa mrtvim interfejsom bez objašnjenja.
     serverHandle.child?.on('exit', (code, signal) => {
       if (quitting || !mainWindow) return;
       log(`[server] neočekivano gašenje posle pokretanja prozora (code=${code}, signal=${signal})`);
@@ -336,8 +329,6 @@ async function bootstrap() {
     log(`GREŠKA: ${error.message}`);
     writeDiagnostics(userDataRoot, { status: 'NEUSPEŠNO', error: error.message });
     closeSplash();
-    // Najčešći uzrok neuspeha pri PRVOM pokretanju je antivirus koji skenira sveže fajlove —
-    // to je privremeno, zato dajemo "Pokušaj ponovo" umesto da odmah ugasimo program.
     const { response } = await dialog.showMessageBox({
       type: 'error',
       title: 'Muzički Spot Studio — greška pri pokretanju',
@@ -362,8 +353,6 @@ async function shutdownAndQuit() {
   app.quit();
 }
 
-// Neuhvaćena greška u Electron main procesu ranije bi tiho ugasila ceo program bez traga.
-// Sada se loguje (ako je log već spreman) i program se bezbedno gasi umesto da nestane bez objašnjenja.
 process.on('uncaughtException', error => {
   logFn(`[main uncaughtException] ${error?.stack || error?.message || error}`);
   try { dialog.showErrorBox('Muzički Spot Studio — neočekivana greška', String(error?.message || error)); } catch {}
