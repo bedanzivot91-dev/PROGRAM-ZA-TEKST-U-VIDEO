@@ -115,9 +115,19 @@ console.log('-- v15.6 completion UI wiring --');
     else bad(`completion-ui.js /${action}`, 'nedostaje korisnički tok');
   }
 
-  for (const fragment of ['/backups', '/restore-backup', '/image-prompts/next-batch', '/image-prompts/submit', '/video-prompts/next-batch', '/video-prompts/submit']) {
+  for (const fragment of ['/backups', '/restore-backup']) {
     if (workflow.includes(fragment)) ok(`workflow-tools-ui.js povezuje ${fragment}`);
     else bad(`workflow-tools-ui.js ${fragment}`, 'nedostaje napredni korisnički tok');
+  }
+  const batchRouteTemplateOk = workflow.includes('/${kind}-prompts/next-batch') && workflow.includes('/${kind}-prompts/submit');
+  if (batchRouteTemplateOk) ok('workflow-tools-ui.js koristi generičke image/video prompt batch API rute');
+  else bad('workflow-tools-ui.js batch API template', 'next-batch ili submit ruta nedostaje');
+  for (const kind of ['image', 'video']) {
+    if (new RegExp(`nextBatch\\(['\"]${kind}['\"]`).test(workflow) && new RegExp(`submitBatch\\(['\"]${kind}['\"]`).test(workflow)) {
+      ok(`workflow-tools-ui.js izlaže ${kind} next/submit batch kontrole`);
+    } else {
+      bad(`workflow-tools-ui.js ${kind} batch kontrole`, 'UI ne poziva generički batch tok');
+    }
   }
 
   const requiredServerFragments = ['/auto-lyrics', '/align', '/analyze-music', '/plan-scenes', '/rename', '/duplicate', '/archive', '/lyrics-overlay', '/backups', '/restore-backup', '/image-prompts/next-batch', '/video-prompts/next-batch'];
