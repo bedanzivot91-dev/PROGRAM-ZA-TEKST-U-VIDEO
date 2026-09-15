@@ -77,10 +77,9 @@ async function main() {
   }
   ok(`/health — ok=true, verzija=${health.version}, port=${health.port}`);
   if (health.version === '15.6') ok('/health verzija je 15.6');
-  else bad('/health verzija NIJE 15.5', String(health.version));
+  else bad('/health verzija NIJE 15.6', String(health.version));
 
   if (health.dataDir !== undefined || true) {
-    // MSS_DATA_DIR mora stvarno biti iskorišćen — proveravamo da server piše u test folder, ne u PROGRAM/data.
     const wroteToTestDir = fs.existsSync(path.join(DATA_DIR, 'server.pid')) || fs.existsSync(path.join(DATA_DIR, 'chatgpt-bridge')) || fs.readdirSync(DATA_DIR).length > 0;
     if (wroteToTestDir) ok('MSS_DATA_DIR — server piše u prosleđeni test folder');
     else bad('MSS_DATA_DIR — test folder je prazan, server možda i dalje piše pored server.js');
@@ -104,9 +103,11 @@ async function main() {
 
   try {
     const listRes = await request('GET', '/api/modules/tools');
-    const hasEight = Array.isArray(listRes.json?.tools) && listRes.json.tools.length === 8;
-    if (listRes.status === 200 && hasEight) ok('GET /api/modules/tools → 200, 8 registrovanih alata');
-    else bad('GET /api/modules/tools', `status ${listRes.status}, tools=${listRes.json?.tools?.length}`);
+    const expectedToolIds = ['ffmpeg', 'hyperframes', 'pyscenedetect', 'real-esrgan', 'rife', 'faster-whisper', 'demucs', 'librosa', 'opencv-face'];
+    const toolIds = Array.isArray(listRes.json?.tools) ? listRes.json.tools.map(tool => tool.id) : [];
+    const hasExpectedTools = listRes.status === 200 && expectedToolIds.every(id => toolIds.includes(id)) && toolIds.length === expectedToolIds.length;
+    if (hasExpectedTools) ok(`GET /api/modules/tools → 200, svih ${expectedToolIds.length} registrovanih alata`);
+    else bad('GET /api/modules/tools', `status ${listRes.status}, tools=${toolIds.length}, ids=${toolIds.join(',')}`);
 
     const badRunRes = await request('POST', '/api/modules/tools/run', { body: { toolId: 'nepostojeci-alat' } });
     if (badRunRes.status === 400) ok('POST /api/modules/tools/run (nepoznat alat) → 400');
@@ -117,11 +118,7 @@ async function main() {
     else bad('GET /api/modules/tools/status', `status ${statusRes.status}, toolStatus=${statusRes.json?.status}`);
   } catch (error) { bad('/api/modules/tools/*', error.message); }
 
-  // /api/system/profile pokreće PowerShell CIM upite (GPU/disk/CPU) — sporije od običnih ruta,
-  // zato dobija duži timeout. I dalje mora da odgovori (ne sme zamrznuti server, vidi advanced-tools.js psJson).
   try {
-    // Sekcija 24: OAuth NIJE konfigurisan u test okruženju (stvarno stanje) — proverava se da
-    // status jasno prijavljuje šta nedostaje i tačan redirect URI umesto tihog pada.
     const res = await request('GET', '/api/youtube/oauth-status');
     if (res.status === 200 && res.json?.configured === false && res.json?.redirectUri === `http://localhost:${PORT}/oauth2callback` && res.json?.steps?.length > 0) {
       ok(`GET /api/youtube/oauth-status → 200, configured:false, tačan redirect URI, ${res.json.steps.length} konkretnih koraka`);
