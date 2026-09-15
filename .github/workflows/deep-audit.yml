@@ -15,7 +15,7 @@ permissions:
 jobs:
   deep-audit:
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -26,6 +26,13 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: SOURCE/package-lock.json
+
+      - name: Install FFmpeg
+        shell: pwsh
+        run: |
+          choco install ffmpeg -y --no-progress
+          ffmpeg -version
+          ffprobe -version
 
       - name: Install dependencies
         working-directory: SOURCE
@@ -41,3 +48,12 @@ jobs:
         working-directory: SOURCE
         shell: pwsh
         run: node tests/test-deep-audit.js
+
+      - name: Complete test suite with V8 coverage
+        working-directory: SOURCE
+        shell: pwsh
+        run: |
+          if (Test-Path .v8-coverage) { Remove-Item .v8-coverage -Recurse -Force }
+          $env:NODE_V8_COVERAGE = (Join-Path $PWD '.v8-coverage')
+          npm test
+          node tests/analyze-v8-coverage.js
