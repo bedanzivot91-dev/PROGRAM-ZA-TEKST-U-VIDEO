@@ -88,11 +88,45 @@ console.log('-- Content-Security-Policy --');
 
 console.log('-- v15.6 completion UI wiring --');
 {
-  const completion = path.join(PROGRAM_DIR, 'public', 'completion-ui.js');
+  const completionFile = path.join(PROGRAM_DIR, 'public', 'completion-ui.js');
   const boot = fs.readFileSync(path.join(PROGRAM_DIR, 'public', 'boot.js'), 'utf8');
-  if (fs.existsSync(completion)) ok('completion-ui.js postoji'); else bad('completion-ui.js', 'nedostaje');
+  if (fs.existsSync(completionFile)) ok('completion-ui.js postoji'); else bad('completion-ui.js', 'nedostaje');
   if (/completion-ui\.js/.test(boot) && /loadCompletionUi/.test(boot)) ok('boot.js učitava completion-ui.js'); else bad('boot.js → completion-ui.js', 'UI nije povezan');
-  if (/\/api\/audio-projects/.test(fs.readFileSync(completion, 'utf8')) && /lyrics-overlay/.test(fs.readFileSync(completion, 'utf8'))) ok('completion-ui.js koristi audio-projects i lyrics-overlay API'); else bad('completion UI API wiring', 'nedostaje');
+
+  const completion = fs.readFileSync(completionFile, 'utf8');
+  const server = fs.readFileSync(path.join(PROGRAM_DIR, 'server.js'), 'utf8');
+  const requiredUiFragments = [
+    '/api/audio-projects',
+    '/audio',
+    '/lyrics',
+    '/auto-lyrics',
+    '/align',
+    '/analyze-music',
+    '/plan-scenes',
+    '/rename',
+    '/duplicate',
+    '/archive',
+    'lyrics-overlay',
+    'project.zip',
+    'project.pdf',
+    'timeline.edl'
+  ];
+  for (const fragment of requiredUiFragments) {
+    if (completion.includes(fragment)) ok(`completion-ui.js povezuje ${fragment}`);
+    else bad(`completion-ui.js ${fragment}`, 'nedostaje korisnički tok');
+  }
+
+  const requiredServerFragments = ['/auto-lyrics', '/align', '/analyze-music', '/plan-scenes', '/rename', '/duplicate', '/archive', '/lyrics-overlay'];
+  for (const fragment of requiredServerFragments) {
+    if (server.includes(fragment)) ok(`server.js ima rutu ${fragment}`);
+    else bad(`server.js ruta ${fragment}`, 'UI bi pozivao nepostojeću rutu');
+  }
+
+  if (/audioBase64/.test(completion) && /fileToBase64/.test(completion)) ok('completion UI ima stvaran audio upload tok');
+  else bad('completion UI audio upload', 'nije povezan');
+
+  if (/storyboard/.test(completion) && /PLANIRAJ SCENE/.test(completion)) ok('completion UI prikazuje ScenePlanner rezultat');
+  else bad('completion UI storyboard', 'nije prikazan');
 }
 
 console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
