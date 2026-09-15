@@ -14,10 +14,21 @@ const logDir = path.join(temp, 'logs');
 
 let server = null;
 let win = null;
+let phase = 'bootstrap';
+let finished = false;
 const hardErrors = [];
 
-function fail(message) {
-  throw new Error(message);
+function mark(next) {
+  phase = next;
+  console.log(`[PHASE] ${next}`);
+}
+function fail(message) { throw new Error(message); }
+function timeout(promise, ms, label) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} timeout posle ${ms}ms`)), ms); })
+  ]).finally(() => clearTimeout(timer));
 }
 
 async function waitFor(predicateSource, timeoutMs = 15000) {
@@ -37,95 +48,99 @@ function summarizeCoverage(entries) {
   const result = {};
   for (const name of wanted) {
     const entry = entries.find(item => String(item.url || '').endsWith(`/${name}`));
-    if (!entry) {
-      result[name] = { loaded: false, functions: 0, executed: 0 };
-      continue;
-    }
+    if (!entry) { result[name] = { loaded:false, functions:0, executed:0 }; continue; }
     const functions = Array.isArray(entry.functions) ? entry.functions : [];
     const executed = functions.filter(fn => (fn.ranges || []).some(range => Number(range.count || 0) > 0)).length;
-    result[name] = { loaded: true, functions: functions.length, executed };
+    result[name] = { loaded:true, functions:functions.length, executed };
   }
   return result;
 }
 
-async function run() {
-  await app.whenReady();
+async function cleanup(code) {
+  if (finished) return;
+  finished = true;
+  mark(`cleanup(code=${code})`);
+  try { await timeout(win?.webContents?.debugger?.sendCommand('Profiler.stopPreciseCoverage') || Promise.resolve(), 1500, 'Profiler.stopPreciseCoverage'); } catch (_) {}
+  try { if (win?.webContents?.debugger?.isAttached()) win.webContents.debugger.detach(); } catch (_) {}
+  try { win?.destroy(); } catch (_) {}
+  try { await timeout(server?.stop?.() || Promise.resolve(), 6000, 'server.stop'); } catch (error) {
+    console.error(`[WARN] server cleanup: ${error.message}`);
+    try { server?.child?.kill?.(); } catch (_) {}
+  }
+  try { fs.rmSync(temp, { recursive:true, force:true }); } catch (_) {}
+  console.log(`[EXIT] renderer probe code=${code}`);
+  app.exit(code);
+}
 
-  server = await startServerProcess({
+const watchdog = setTimeout(() => {
+  console.error(`[FAIL] Renderer watchdog istekao u fazi: ${phase}`);
+  cleanup(124).catch(() => app.exit(124));
+}, 70000);
+
+async function run() {
+  mark('app.whenReady');
+  await timeout(app.whenReady(), 15000, 'app.whenReady');
+
+  mark('startServerProcess');
+  server = await timeout(startServerProcess({
     electronExecPath: process.execPath,
     programDir: PROGRAM,
     dataDir,
     logDir,
     onLog: line => console.log(line)
-  });
+  }), 52000, 'startServerProcess');
+  console.log(`[OK] server started: ${server.url}`);
 
+  mark('create BrowserWindow');
   win = new BrowserWindow({
-    show: false,
-    width: 1440,
-    height: 900,
-    webPreferences: {
-      sandbox: true,
-      contextIsolation: true,
-      nodeIntegration: false,
-      webSecurity: true,
-      allowRunningInsecureContent: false
-    }
+    show:false,
+    width:1440,
+    height:900,
+    webPreferences:{ sandbox:true, contextIsolation:true, nodeIntegration:false, webSecurity:true, allowRunningInsecureContent:false }
   });
 
   win.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
     if (isMainFrame !== false) hardErrors.push(`did-fail-load ${code}: ${description} (${validatedURL || ''})`);
   });
-  win.webContents.on('render-process-gone', (_event, details) => {
-    hardErrors.push(`render-process-gone: ${details?.reason || 'unknown'}`);
-  });
+  win.webContents.on('render-process-gone', (_event, details) => hardErrors.push(`render-process-gone: ${details?.reason || 'unknown'}`));
   win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
     const text = String(message || '');
-    if (level >= 3 || /uncaught|referenceerror|typeerror|syntaxerror|nije učitan/i.test(text)) {
-      hardErrors.push(`console[${level}] ${text} (${sourceId || ''}:${line || 0})`);
-    }
+    if (level >= 3 || /uncaught|referenceerror|typeerror|syntaxerror|nije učitan/i.test(text)) hardErrors.push(`console[${level}] ${text} (${sourceId || ''}:${line || 0})`);
   });
 
+  mark('attach Chromium Profiler');
   try {
     win.webContents.debugger.attach('1.3');
-    await win.webContents.debugger.sendCommand('Profiler.enable');
-    await win.webContents.debugger.sendCommand('Profiler.startPreciseCoverage', { callCount: true, detailed: true });
-  } catch (error) {
-    fail(`Chromium Profiler nije mogao da se uključi: ${error.message}`);
-  }
+    await timeout(win.webContents.debugger.sendCommand('Profiler.enable'), 5000, 'Profiler.enable');
+    await timeout(win.webContents.debugger.sendCommand('Profiler.startPreciseCoverage', { callCount:true, detailed:true }), 5000, 'Profiler.startPreciseCoverage');
+  } catch (error) { fail(`Chromium Profiler nije mogao da se uključi: ${error.message}`); }
 
-  await win.loadURL(server.url);
+  mark('loadURL');
+  await timeout(win.loadURL(server.url), 20000, 'BrowserWindow.loadURL');
 
+  mark('wait UI mount');
   const mounted = await waitFor(`(() => document.readyState === 'complete' && document.getElementById('mss-completion-launcher') && document.getElementById('mss-workflow-launcher'))()`);
   if (!mounted) fail('Renderer nije montirao completion/workflow UI u roku.');
 
-  const live = await win.webContents.executeJavaScript(`(async () => {
+  mark('exercise live DOM and API');
+  const live = await timeout(win.webContents.executeJavaScript(`(async () => {
     const healthResponse = await fetch('/health', { cache:'no-store' });
     const health = await healthResponse.json();
     const completion = document.getElementById('mss-completion-launcher');
     const workflow = document.getElementById('mss-workflow-launcher');
-    completion.click();
-    workflow.click();
+    completion.click(); workflow.click();
     await new Promise(resolve => setTimeout(resolve, 600));
     const completionPanel = document.getElementById('mss-completion-panel');
     const workflowPanel = document.getElementById('mss-workflow-panel');
     return {
-      readyState: document.readyState,
-      healthOk: Boolean(health?.ok),
-      healthVersion: health?.version || '',
-      browserClientId: String(window.__MSS_BROWSER_CLIENT_ID__ || ''),
-      completionMounted: Boolean(completion),
-      workflowMounted: Boolean(workflow),
-      completionOpen: Boolean(completionPanel?.classList.contains('open')),
-      workflowOpen: Boolean(workflowPanel?.classList.contains('open')),
-      completionProjectList: Boolean(document.getElementById('mss-cu-projects')),
-      workflowProjectSelect: Boolean(document.getElementById('mss-workflow-project')),
-      dynamicScripts: {
-        completion: Boolean(document.querySelector('script[data-mss-completion-ui]')),
-        workflow: Boolean(document.querySelector('script[data-mss-workflow-tools-ui]'))
-      },
-      buttonCount: document.querySelectorAll('button').length
+      readyState:document.readyState, healthOk:Boolean(health?.ok), healthVersion:health?.version || '',
+      browserClientId:String(window.__MSS_BROWSER_CLIENT_ID__ || ''), completionMounted:Boolean(completion), workflowMounted:Boolean(workflow),
+      completionOpen:Boolean(completionPanel?.classList.contains('open')), workflowOpen:Boolean(workflowPanel?.classList.contains('open')),
+      completionProjectList:Boolean(document.getElementById('mss-cu-projects')), workflowProjectSelect:Boolean(document.getElementById('mss-workflow-project')),
+      dynamicScripts:{ completion:Boolean(document.querySelector('script[data-mss-completion-ui]')), workflow:Boolean(document.querySelector('script[data-mss-workflow-tools-ui]')) },
+      buttonCount:document.querySelectorAll('button').length
     };
-  })()`, true);
+  })()`, true), 10000, 'renderer executeJavaScript');
 
   if (live.readyState !== 'complete') fail(`Renderer readyState=${live.readyState}`);
   if (!live.healthOk) fail('Renderer fetch /health nije vratio ok=true.');
@@ -137,7 +152,8 @@ async function run() {
   if (!live.dynamicScripts.completion || !live.dynamicScripts.workflow) fail('boot.js nije dinamički registrovao oba nova UI skripta.');
   if (live.buttonCount < 10) fail(`Neočekivano malo UI dugmadi u živom DOM-u: ${live.buttonCount}`);
 
-  const precise = await win.webContents.debugger.sendCommand('Profiler.takePreciseCoverage');
+  mark('take Chromium coverage');
+  const precise = await timeout(win.webContents.debugger.sendCommand('Profiler.takePreciseCoverage'), 8000, 'Profiler.takePreciseCoverage');
   const coverage = summarizeCoverage(precise?.result || []);
   for (const [name, info] of Object.entries(coverage)) {
     if (!info.loaded) fail(`${name} nije učitan u Chromium rendereru.`);
@@ -148,24 +164,16 @@ async function run() {
   if (serious.length) fail(`Renderer je prijavio ozbiljne greške:\n${serious.join('\n')}`);
 
   console.log('== Chromium renderer runtime probe ==');
-  console.log(`[OK] Server + renderer: ${server.url}`);
   console.log(`[OK] Live DOM: ${JSON.stringify(live)}`);
   console.log(`[OK] Precise coverage: ${JSON.stringify(coverage)}`);
   console.log('[OK] Nema renderer crash/load/uncaught JS grešaka u probnom toku.');
 }
 
 run().then(async () => {
-  try { await win?.webContents?.debugger?.sendCommand('Profiler.stopPreciseCoverage'); } catch (_) {}
-  try { win?.webContents?.debugger?.detach(); } catch (_) {}
-  try { win?.destroy(); } catch (_) {}
-  try { await server?.stop?.(); } catch (_) {}
-  try { fs.rmSync(temp, { recursive: true, force: true }); } catch (_) {}
-  app.quit();
+  clearTimeout(watchdog);
+  await cleanup(0);
 }).catch(async error => {
-  console.error(`[FAIL] ${error.stack || error.message}`);
-  try { win?.destroy(); } catch (_) {}
-  try { await server?.stop?.(); } catch (_) {}
-  try { fs.rmSync(temp, { recursive: true, force: true }); } catch (_) {}
-  process.exitCode = 1;
-  app.quit();
+  clearTimeout(watchdog);
+  console.error(`[FAIL] faza=${phase}: ${error.stack || error.message}`);
+  await cleanup(1);
 });
