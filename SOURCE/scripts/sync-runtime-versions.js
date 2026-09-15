@@ -85,13 +85,25 @@ if (researchOriginal.includes(normalizedDateLine)) {
   process.exitCode = 1;
 }
 
+// Sandboxed preload ne sme da require()-uje ../package.json. Umesto toga sadrži
+// generisanu APP_VERSION konstantu koju ovaj centralni sync održava iz package.json.
 const preloadFile = path.join(ROOT, 'desktop', 'preload.js');
-const preload = fs.readFileSync(preloadFile, 'utf8');
-if (!/require\(['"]\.\.\/package\.json['"]\)/.test(preload)) {
-  console.error('[FAIL] desktop/preload.js mora da čita verziju iz package.json, bez hardkodovanog patch broja.');
+const preloadOriginal = fs.readFileSync(preloadFile, 'utf8');
+const preloadPattern = /const APP_VERSION = '[^']+';/;
+const preloadExpected = `const APP_VERSION = '${fullVersion}';`;
+const preloadMatch = preloadOriginal.match(preloadPattern);
+if (!preloadMatch) {
+  console.error('[FAIL] desktop/preload.js nema centralno sinhronizovanu APP_VERSION konstantu.');
+  process.exitCode = 1;
+} else if (preloadMatch[0] === preloadExpected) {
+  console.log(`[OK] desktop preload sandbox-safe APP_VERSION = ${fullVersion}`);
+} else if (checkOnly) {
+  console.error(`[FAIL] desktop/preload.js: pronađeno ${preloadMatch[0]}, očekivano ${preloadExpected}`);
   process.exitCode = 1;
 } else {
-  console.log(`[OK] desktop preload koristi package.json (${fullVersion})`);
+  fs.writeFileSync(preloadFile, preloadOriginal.replace(preloadPattern, preloadExpected), 'utf8');
+  changed += 1;
+  console.log(`[FIX] desktop preload APP_VERSION: ${preloadMatch[0]} -> ${preloadExpected}`);
 }
 
 if (!process.exitCode) console.log(`[OK] Runtime verzije i kritični runtime ugovori usklađeni. full=${fullVersion}, protocol=${protocolVersion}, changed=${changed}`);
