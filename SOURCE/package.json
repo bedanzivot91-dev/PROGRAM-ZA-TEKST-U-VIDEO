@@ -20,7 +20,7 @@
     "test:lyrics": "node tests/test-lyrics-parser.js",
     "test:alignment": "node tests/test-lyrics-alignment.js",
     "test:audio-probe": "node tests/test-audio-probe.js",
-    "test:audio-projects": "node tests/test-audio-projects-integration.js",
+    "test:audio-projects": "node tests/test-audio-projects-integration.js && node tests/test-audio-project-state.js",
     "test:stems": "node tests/test-stem-separation.js",
     "test:transcription": "node tests/test-transcription-provider.js",
     "test:auto-lyrics": "node tests/test-auto-lyrics.js",
