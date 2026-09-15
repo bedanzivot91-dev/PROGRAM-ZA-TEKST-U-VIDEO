@@ -66,12 +66,22 @@ async function main() {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, PORT: String(PORT), MSS_DATA_DIR: DATA_DIR, MSS_SKIP_BROWSER: '1', MSS_SKIP_BACKGROUND: '1' }
   });
+  let stdoutBuf = '';
   let stderrBuf = '';
-  child.stderr.on('data', chunk => { stderrBuf += chunk.toString(); });
+  // Uvek praznimo oba pipe-a. Ako stdout nije potrošen, Windows pipe bafer može da se napuni
+  // i blokira pravi server usred E2E testa, što je ranije davalo lažne /api/fonts i POST timeout-e.
+  child.stdout.on('data', chunk => {
+    stdoutBuf += chunk.toString();
+    if (stdoutBuf.length > 65536) stdoutBuf = stdoutBuf.slice(-65536);
+  });
+  child.stderr.on('data', chunk => {
+    stderrBuf += chunk.toString();
+    if (stderrBuf.length > 65536) stderrBuf = stderrBuf.slice(-65536);
+  });
 
   const health = await waitForHealth();
   if (!health) {
-    bad('Server nije odgovorio na /health', stderrBuf.slice(0, 800));
+    bad('Server nije odgovorio na /health', `${stderrBuf}\n${stdoutBuf}`.slice(-1600));
     console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
     try { child.kill(); } catch {}
     process.exit(1);
@@ -97,7 +107,9 @@ async function main() {
   } catch (error) { bad('GET /api/text-presets/:id nepoznat', error.message); }
 
   try {
-    const res = await request('GET', '/api/fonts');
+    // Prvi stvarni Windows font scan je cold-I/O operacija i na GitHub Windows runneru može
+    // trajati duže od opšteg HTTP timeouta. Ovo nije mock: čekamo pravi rezultat sa diska.
+    const res = await request('GET', '/api/fonts', { timeout: 60000 });
     if (res.status === 200 && Array.isArray(res.json?.fonts) && res.json.fonts.length > 0) ok(`GET /api/fonts → 200, ${res.json.fonts.length} fontova sa prave mašine`);
     else bad('GET /api/fonts', JSON.stringify(res.json)?.slice(0, 200));
   } catch (error) { bad('GET /api/fonts', error.message); }
