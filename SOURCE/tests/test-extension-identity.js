@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
+const { execFileSync } = require('child_process');
 const { computeChromeExtensionId, MSS_EXTENSION_ID, MSS_EXTENSION_PUBLIC_KEY_B64, MSS_EXTENSION_ORIGIN } = require('../PROGRAM - NE BRISATI/extension-identity');
 
 let pass = 0;
@@ -50,6 +51,15 @@ test('ID izračunat direktno iz manifest.json "key" polja se poklapa sa MSS_EXTE
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const idFromManifest = computeChromeExtensionId(manifest.key);
   assert.strictEqual(idFromManifest, MSS_EXTENSION_ID, 'server-side ID i manifest.json ID moraju biti isti da bi CORS allow-lista radila');
+});
+
+test('Chrome extension dubinski runtime ugovor prolazi', () => {
+  execFileSync(process.execPath, [path.join(__dirname, 'test-extension-runtime-deep.js')], {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit',
+    windowsHide: true,
+    timeout: 30000
+  });
 });
 
 console.log(`\n== REZULTAT: ${pass} prošlo, ${fail} nije prošlo ==`);
