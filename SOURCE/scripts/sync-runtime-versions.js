@@ -62,6 +62,29 @@ for (const entry of fs.readdirSync(PROGRAM, { withFileTypes: true })) {
   }
 }
 
+// Research engine normalizuje yt-dlp polja u camelCase (uploadDate/viewCount),
+// pa parseDateValue mora da prihvati i normalizovana i sirova imena polja.
+// Bez ovoga publicMomentum tretira normalizovane video zapise kao stare 365 dana.
+const researchFile = path.join(PROGRAM, 'research-engine.js');
+const researchOriginal = fs.readFileSync(researchFile, 'utf8');
+const legacyDateLine = "const raw = clean(entry?.upload_date || entry?.release_date, 16);";
+const normalizedDateLine = "const raw = clean(entry?.uploadDate || entry?.upload_date || entry?.releaseDate || entry?.release_date, 16);";
+if (researchOriginal.includes(normalizedDateLine)) {
+  console.log('[OK] research-engine parseDateValue prihvata normalizovana i raw polja datuma');
+} else if (researchOriginal.includes(legacyDateLine)) {
+  if (checkOnly) {
+    console.error('[FAIL] research-engine parseDateValue ne čita uploadDate/releaseDate normalizovana polja.');
+    process.exitCode = 1;
+  } else {
+    fs.writeFileSync(researchFile, researchOriginal.replace(legacyDateLine, normalizedDateLine), 'utf8');
+    changed += 1;
+    console.log('[FIX] research-engine parseDateValue sada čita uploadDate/releaseDate i raw polja');
+  }
+} else {
+  console.error('[FAIL] research-engine parseDateValue ugovor nije pronađen; potrebna je ručna provera.');
+  process.exitCode = 1;
+}
+
 const preloadFile = path.join(ROOT, 'desktop', 'preload.js');
 const preload = fs.readFileSync(preloadFile, 'utf8');
 if (!/require\(['"]\.\.\/package\.json['"]\)/.test(preload)) {
@@ -71,4 +94,4 @@ if (!/require\(['"]\.\.\/package\.json['"]\)/.test(preload)) {
   console.log(`[OK] desktop preload koristi package.json (${fullVersion})`);
 }
 
-if (!process.exitCode) console.log(`[OK] Runtime verzije usklađene. full=${fullVersion}, protocol=${protocolVersion}, changed=${changed}`);
+if (!process.exitCode) console.log(`[OK] Runtime verzije i kritični runtime ugovori usklađeni. full=${fullVersion}, protocol=${protocolVersion}, changed=${changed}`);
