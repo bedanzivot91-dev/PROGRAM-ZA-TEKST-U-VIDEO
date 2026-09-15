@@ -44,6 +44,13 @@ jobs:
         shell: pwsh
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Full dependency security audit including build tools
+        id: dependency_audit
+        continue-on-error: true
+        working-directory: SOURCE
+        shell: pwsh
+        run: npm audit --audit-level=high
+
       - name: Regenerate integrity manifest from actual files
         working-directory: SOURCE
         shell: pwsh
@@ -97,10 +104,11 @@ jobs:
         if: always()
         shell: pwsh
         run: |
+          $deps = '${{ steps.dependency_audit.outcome }}'
           $deep = '${{ steps.deep_audit.outcome }}'
           $tests = '${{ steps.full_tests.outcome }}'
           $coverage = '${{ steps.coverage.outcome }}'
-          if ($deep -ne 'success' -or $tests -ne 'success' -or $coverage -ne 'success') {
-            Write-Error "Dubinski audit nije zelen. deep=$deep tests=$tests coverage=$coverage"
+          if ($deps -ne 'success' -or $deep -ne 'success' -or $tests -ne 'success' -or $coverage -ne 'success') {
+            Write-Error "Dubinski audit nije zelen. dependencies=$deps deep=$deep tests=$tests coverage=$coverage"
             exit 1
           }
