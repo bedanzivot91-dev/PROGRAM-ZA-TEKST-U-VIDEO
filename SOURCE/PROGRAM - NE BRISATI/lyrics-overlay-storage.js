@@ -1,13 +1,9 @@
 'use strict';
 
-// Storage/API sloj za "Tekst na videu / Lyrics Overlay Studio" (sekcija 22 dodatka). Teški
-// podaci (track-ovi + cue-ovi) žive u projects/PROJECT_ID/lyrics/overlay-tracks.json — NE u
-// project.json (koji ostaje mali). project.json.lyricsOverlay je samo mali REFERENTNI blok
-// (broj track-ova/cue-ova, updatedAt) da lista projekata može prikazati status bez čitanja
-// celog overlay fajla za svaki projekat.
-//
-// Tekst je nezavisan, naknadno izmenjiv sloj (pravilo 1 dodatka) — ova skladišna funkcija ne
-// dira project.storyboard/imagePrompts/videoPrompts ni na koji način.
+// Storage/API sloj za "Tekst na videu / Lyrics Overlay Studio". Teški track/cue podaci žive
+// u projects/PROJECT_ID/lyrics/overlay-tracks.json; project.json.lyricsOverlay je samo statusni
+// referentni blok. Oštećen overlay fajl se NIKADA ne tretira kao prazan — to bi omogućilo da
+// sledeći upis pregazi korisničke cue-ove praznim stanjem.
 
 const fs = require('fs');
 const path = require('path');
@@ -18,15 +14,21 @@ const projectBackup = require('./project-backup');
 function overlayDir(projectId) {
   return path.join(audioProjects.projectDir(projectId), 'lyrics');
 }
+
 function overlayTracksFile(projectId) {
   return path.join(overlayDir(projectId), 'overlay-tracks.json');
 }
 
 function atomicWriteJson(file, data) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tmp = `${file}.tmp-${process.pid}-${Date.now()}`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
-  fs.renameSync(tmp, file);
+  const tmp = `${file}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tmp, file);
+  } catch (error) {
+    try { fs.unlinkSync(tmp); } catch {}
+    throw error;
+  }
 }
 
 function requireProject(projectId) {
@@ -35,22 +37,38 @@ function requireProject(projectId) {
   return project;
 }
 
+function overlayCorruptedError(message, cause = null) {
+  const error = new Error(`Lyrics overlay podaci su oštećeni: ${message}`);
+  error.code = 'OVERLAY_CORRUPTED';
+  if (cause) error.cause = cause;
+  return error;
+}
+
 function readOverlayTracks(projectId) {
   const file = overlayTracksFile(projectId);
   if (!fs.existsSync(file)) return [];
+  let parsed;
   try {
-    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return Array.isArray(parsed.tracks) ? parsed.tracks : [];
-  } catch {
-    return [];
+    parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (error) {
+    throw overlayCorruptedError('overlay-tracks.json nije validan JSON. Fajl nije izmenjen.', error);
   }
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.tracks)) {
+    throw overlayCorruptedError('overlay-tracks.json nema očekivani tracks niz. Fajl nije izmenjen.');
+  }
+  for (const [index, track] of parsed.tracks.entries()) {
+    if (!track || typeof track !== 'object' || typeof track.trackId !== 'string' || !Array.isArray(track.cues)) {
+      throw overlayCorruptedError(`track na poziciji ${index} nema validan trackId/cues oblik. Fajl nije izmenjen.`);
+    }
+  }
+  return parsed.tracks;
 }
 
-// Upisuje track-ove i osvežava mali referentni blok u project.json — ovo je JEDINO mesto koje
-// piše overlay-tracks.json, da broj cue-ova u project.json.lyricsOverlay nikad ne zastari.
 function writeOverlayTracks(projectId, tracks) {
+  requireProject(projectId);
+  if (!Array.isArray(tracks)) throw new TypeError('tracks mora biti niz.');
+  const cueCount = tracks.reduce((sum, track) => sum + (Array.isArray(track.cues) ? track.cues.filter(cue => !cue?.deleted).length : 0), 0);
   atomicWriteJson(overlayTracksFile(projectId), { tracks });
-  const cueCount = tracks.reduce((sum, t) => sum + (t.cues || []).filter(c => !c.deleted).length, 0);
   audioProjects.updateProject(projectId, {
     lyricsOverlay: { trackCount: tracks.length, cueCount, updatedAt: new Date().toISOString() }
   });
@@ -58,7 +76,7 @@ function writeOverlayTracks(projectId, tracks) {
 }
 
 function findTrackOrThrow(tracks, trackId) {
-  const track = tracks.find(t => t.trackId === trackId);
+  const track = tracks.find(candidate => candidate.trackId === trackId);
   if (!track) { const error = new Error('Text track nije pronađen.'); error.code = 'TRACK_NOT_FOUND'; throw error; }
   return track;
 }
@@ -86,21 +104,19 @@ function updateTextTrackForProject(projectId, trackId, patch = {}) {
     error.code = 'INVALID_TRACK_TYPE';
     throw error;
   }
-  Object.assign(track, patch, { trackId: track.trackId, cues: track.cues });
+  const safePatch = patch && typeof patch === 'object' && !Array.isArray(patch) ? patch : {};
+  Object.assign(track, safePatch, { trackId: track.trackId, cues: track.cues });
   writeOverlayTracks(projectId, tracks);
   return track;
 }
 
-// Trajno uklanja track. Backup CELOG projekta se pravi pre brisanja (pravilo iz sekcije 31) —
-// ne postoji poseban "soft delete" za ceo track (samo za pojedinačne cue-ove, ispod), jer je
-// track obično prazna organizaciona jedinica koju je lako ponovo napraviti; sadržaj (cue-ovi)
-// se čuva u backup-u ako je greškom obrisan pun track.
 function deleteTextTrackForProject(projectId, trackId) {
   const project = requireProject(projectId);
   const tracks = readOverlayTracks(projectId);
   findTrackOrThrow(tracks, trackId);
-  projectBackup.createProjectBackup(audioProjects.projectDir(projectId), { ...project, lyricsOverlayTracksSnapshot: tracks }, 'before_delete_text_track');
-  const remaining = tracks.filter(t => t.trackId !== trackId);
+  // project-backup.js sada čuva i sam overlay-tracks.json, ne samo project.json metadata.
+  projectBackup.createProjectBackup(audioProjects.projectDir(projectId), project, 'before_delete_text_track');
+  const remaining = tracks.filter(track => track.trackId !== trackId);
   writeOverlayTracks(projectId, remaining);
   return { ok: true, deletedTrackId: trackId };
 }
@@ -123,7 +139,7 @@ function addCueToTrack(projectId, trackId, cueOptions = {}) {
 }
 
 function findCueOrThrow(track, cueId) {
-  const cue = track.cues.find(c => c.cueId === cueId);
+  const cue = track.cues.find(candidate => candidate.cueId === cueId);
   if (!cue) { const error = new Error('Cue nije pronađen.'); error.code = 'CUE_NOT_FOUND'; throw error; }
   return cue;
 }
@@ -133,7 +149,8 @@ function updateCueInTrack(projectId, trackId, cueId, patch = {}) {
   const tracks = readOverlayTracks(projectId);
   const track = findTrackOrThrow(tracks, trackId);
   const cue = findCueOrThrow(track, cueId);
-  const merged = { ...cue, ...patch, cueId: cue.cueId, trackId: cue.trackId };
+  const safePatch = patch && typeof patch === 'object' && !Array.isArray(patch) ? patch : {};
+  const merged = { ...cue, ...safePatch, cueId: cue.cueId, trackId: cue.trackId };
   const validation = validateCue(merged, { totalDurationMs: project.audio?.durationMs ?? null });
   if (!validation.valid) {
     const error = new Error(`Cue nije validan: ${validation.problems.join('; ')}`);
@@ -146,7 +163,6 @@ function updateCueInTrack(projectId, trackId, cueId, patch = {}) {
   return cue;
 }
 
-// Soft-delete (sekcija 4: mora biti moguće ukloniti I VRATITI cue bez regenerisanja celog spota).
 function softDeleteCue(projectId, trackId, cueId) {
   requireProject(projectId);
   const tracks = readOverlayTracks(projectId);
@@ -159,10 +175,17 @@ function softDeleteCue(projectId, trackId, cueId) {
 }
 
 function restoreCue(projectId, trackId, cueId) {
-  requireProject(projectId);
+  const project = requireProject(projectId);
   const tracks = readOverlayTracks(projectId);
   const track = findTrackOrThrow(tracks, trackId);
   const cue = findCueOrThrow(track, cueId);
+  const validation = validateCue(cue, { totalDurationMs: project.audio?.durationMs ?? null });
+  if (!validation.valid) {
+    const error = new Error(`Obrisani cue više ne može bezbedno da se vrati: ${validation.problems.join('; ')}`);
+    error.code = 'INVALID_CUE';
+    error.problems = validation.problems;
+    throw error;
+  }
   cue.deleted = false;
   cue.deletedAt = null;
   writeOverlayTracks(projectId, tracks);
@@ -173,11 +196,12 @@ function validateProjectOverlay(projectId) {
   const project = requireProject(projectId);
   const tracks = readOverlayTracks(projectId);
   const results = tracks.map(track => ({ trackId: track.trackId, ...validateTrack(track, { totalDurationMs: project.audio?.durationMs ?? null }) }));
-  return { valid: results.every(r => r.valid), tracks: results };
+  return { valid: results.every(result => result.valid), tracks: results };
 }
 
 module.exports = {
   overlayDir, overlayTracksFile, readOverlayTracks, writeOverlayTracks,
   listTextTracks, createTextTrackForProject, updateTextTrackForProject, deleteTextTrackForProject,
-  addCueToTrack, updateCueInTrack, softDeleteCue, restoreCue, validateProjectOverlay
+  addCueToTrack, updateCueInTrack, softDeleteCue, restoreCue, validateProjectOverlay,
+  overlayCorruptedError
 };
