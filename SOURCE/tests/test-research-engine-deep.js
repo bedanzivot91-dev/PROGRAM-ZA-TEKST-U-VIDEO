@@ -115,7 +115,7 @@ function ok(value, message) { assert.ok(value, message); passed++; console.log(`
     const own = await research.analyzeOwnChannels();
     ok(own.ok && own.sourceMode === 'test-mock', 'analyzeOwnChannels deterministički test tok radi bez spoljne mreže');
     const refs = await research.searchYoutubeReferences('emotional music video', 3, 'momentum');
-    ok(refs.results.length === 3, 'searchYoutubeReferences test tok vraća i rangira reference');
+    ok(Array.isArray(refs) && refs.length === 3, 'searchYoutubeReferences test tok vraća i rangira niz referenci');
     const report = await research.runResearch({songTitle:'Test pesma',genre:'pop balada',lyrics:'Nedostaješ mi svake noći'});
     ok(report.ok === true && report.channelAnalysis?.sourceMode === 'test-mock', 'runResearch kompletan deterministički tok završava uspešno');
     ok(research.lastResearch()?.ok === true, 'lastResearch čita poslednji sačuvani report');
